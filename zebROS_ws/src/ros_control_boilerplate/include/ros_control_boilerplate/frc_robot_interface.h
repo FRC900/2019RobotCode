@@ -49,6 +49,7 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
 #include <talon_interface/talon_command_interface.h>
+#include <spark_max_interface/sparkmax_command_interface.h>
 #include "frc_interfaces/robot_controller_interface.h"
 #include "frc_interfaces/pcm_state_interface.h"
 #include "frc_interfaces/remote_joint_interface.h"

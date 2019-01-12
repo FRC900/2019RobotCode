@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   frc_msgs
   frc_interfaces
+  spark_max_interface
 )
 
 add_message_files (
