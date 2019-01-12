@@ -564,6 +564,7 @@ class SparkMaxHWState
 };
 
 typedef StateHandle<const SparkMaxHWState> SparkMaxStateHandle;
+typedef StateHandle<SparkMaxHWState> SparkMaxWritableStateHandle;
 
 class SparkMaxStateInterface : public HardwareResourceManager<SparkMaxStateHandle> {};
 

@@ -49,7 +49,7 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
 #include <talon_interface/talon_command_interface.h>
-#include <spark_max_interface/sparkmax_command_interface.h>
+#include <spark_max_interface/spark_max_command_interface.h>
 #include "frc_interfaces/robot_controller_interface.h"
 #include "frc_interfaces/pcm_state_interface.h"
 #include "frc_interfaces/remote_joint_interface.h"
@@ -165,6 +165,8 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		hardware_interface::JointStateInterface       joint_state_interface_;
 		hardware_interface::TalonStateInterface       talon_state_interface_;
 		hardware_interface::RemoteTalonStateInterface talon_remote_state_interface_;
+		hardware_interface::SparkMaxStateInterface    spark_max_state_interface_;
+		hardware_interface::RemoteSparkMaxStateInterface spark_max_remote_state_interface_;
 		hardware_interface::PDPStateInterface	      pdp_state_interface_;
 		hardware_interface::RemotePDPStateInterface	  pdp_remote_state_interface_;
 		hardware_interface::PCMStateInterface	      pcm_state_interface_;
@@ -179,6 +181,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		hardware_interface::EffortJointInterface   joint_effort_interface_;
 		hardware_interface::RemoteJointInterface   joint_remote_interface_;
 		hardware_interface::TalonCommandInterface  talon_command_interface_;
+		hardware_interface::SparkMaxCommandInterface  spark_max_command_interface_;
 
 		hardware_interface::ImuSensorInterface imu_interface_;
 		hardware_interface::RemoteImuSensorInterface imu_remote_interface_;
@@ -202,6 +205,14 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		std::vector<bool>        can_talon_srx_local_updates_;
 		std::vector<bool>        can_talon_srx_local_hardwares_;
 		std::size_t              num_can_talon_srxs_;
+
+		// Configuration
+		std::vector<std::string>                   spark_max_names_;
+		std::vector<int>                           spark_max_can_ids_;
+		std::vector<hardware_interface::MotorType> spark_max_motor_types_;
+		std::vector<bool>                          spark_max_local_updates_;
+		std::vector<bool>                          spark_max_local_hardwares_;
+		std::size_t                                num_spark_maxs_;
 
 		std::vector<std::string> nidec_brushless_names_;
 		std::vector<int>         nidec_brushless_pwm_channels_;
@@ -299,6 +310,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		// Array holding master cached state of hardware
 		// resources
 		std::vector<hardware_interface::TalonHWState> talon_state_;
+		std::vector<hardware_interface::SparkMaxHWState> spark_max_state_;
 		std::vector<double> brushless_vel_;
 
 		std::vector<double> digital_input_state_;
@@ -327,6 +339,7 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		// Same as above, but for pending commands to be
 		// written to the hardware
 		std::vector<hardware_interface::TalonHWCommand> talon_command_;
+		std::vector<hardware_interface::SparkMaxHWCommand> spark_max_command_;
 		std::vector<double> brushless_command_;
 		std::vector<double> digital_output_command_;
 		std::vector<double> pwm_command_;

@@ -10,6 +10,8 @@ project(frc_interfaces)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   state_handle
+  talon_interface
+  spark_max_interface
 )
 
 ## System dependencies are found with CMake's conventions
@@ -104,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES frc_interfaces
-   CATKIN_DEPENDS state_handle roscpp
+   CATKIN_DEPENDS state_handle roscpp talon_interface spark_max_interface
 #  DEPENDS system_lib
 )
 
