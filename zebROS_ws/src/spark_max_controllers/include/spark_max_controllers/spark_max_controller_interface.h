@@ -262,6 +262,7 @@ class SparkMaxControllerInterface
 		// Read params from config file and use them to
 		// initialize the Spark Max hardware
 		virtual bool initWithNode(hardware_interface::SparkMaxCommandInterface *smci,
+								  hardware_interface::SparkMaxStateInterface * /*smsi*/,
 								  ros::NodeHandle &n)
 		{
 			return init(smci, n, spark_max_, /*srv_mutex_, srv_,*/ true) &&
@@ -273,9 +274,10 @@ class SparkMaxControllerInterface
 		// spark max and the rest are set in follower mode to follow
 		// the leader
 		virtual bool initWithNode(hardware_interface::SparkMaxCommandInterface *smci,
+								  hardware_interface::SparkMaxStateInterface *smsi,
 								  std::vector<ros::NodeHandle> &n)
 		{
-			if (!initWithNode(smci, n[0]))
+			if (!initWithNode(smci, smsi, n[0]))
 				return false;
 
 			const int follow_can_id = spark_max_.state()->getCANID();
@@ -302,6 +304,7 @@ class SparkMaxControllerInterface
 		// will be either a string or an array of strings of joints
 		// to load
 		virtual bool initWithNode(hardware_interface::SparkMaxCommandInterface *smci,
+								  hardware_interface::SparkMaxStateInterface *smsi,
 								  ros::NodeHandle &controller_nh,
 								  XmlRpc::XmlRpcValue param)
 		{
@@ -339,13 +342,19 @@ class SparkMaxControllerInterface
 				return false;
 			}
 
-			return initWithNode(smci, joint_nodes);
+			return initWithNode(smci, smsi, joint_nodes);
 		}
 
 		// Set the setpoint for the motor controller
 		virtual void setCommand(const double command)
 		{
 			spark_max_->setSetPoint(command);
+		}
+
+		// Set the mode of the motor controller
+		virtual void setMode(hardware_interface::ControlType mode);
+		{
+			spark_max_->setPIDReferenceCtrl(mode);
 		}
 
 		virtual bool setPIDFSlot(int slot)
@@ -510,14 +519,169 @@ class SparkMaxControllerInterface
 };
 
 // Base --^
-// Fixed Mode
-// Follow Talon
-// Follow Spark Max
+
+// A derived class which disables mode switching. Any
+// single-mode CI class should derive from this class
+class SparkMaxFixedModeControllerInterface : public SparkMaxControllerInterface
+{
+	protected:
+		// Disable changing mode for controllers derived from this class
+		void setMode(hardware_interface::SparkMaxMode /*mode*/) override
+		{
+			ROS_WARN("Can't reset mode using this SparkMaxControllerInterface");
+		}
+};
+
+
+
 // Duty Cycle
+class SparkMaxDutyCycleControllerInterface : public SparkMaxFixedModeControllerInterface
+{
+	protected:
+		bool setInitialMode(void) override
+		{
+			// Set the mode at init time - since this
+			// class is derived from the FixedMode class
+			// it can't be reset
+			spark_max_->setPIDFreferenceCtrl(hardware_interface::kDutyCycle);
+			ROS_INFO_STREAM("Set up spark max" << talon_.getName() << " in duty cycle mode");
+			return true;
+		}
+		// Maybe disable the setPIDFSlot call since that makes
+		// no sense for a non-PID controller mode?
+};
+
 // Position
 // Velocity
 // Voltage
-//
+class SparkMaxCloseLoopControllerInterface : public SparkMaxFixedModeControllerInterface
+{
+};
 
+class SparkMaxPositionCloseLoopControllerInterface : public SparkMaxCloseLoopControllerInterface
+{
+	protected:
+		bool setInitialMode(void) override
+		{
+			// Set to speed close loop mode
+			spark_max_->setPIDFReferenceCtrl(hardware_interface::kPosition);
+			ROS_INFO_STREAM("Set up spark_max " << spark_max_.getName() << " in Close Loop Position mode");
+
+			return true;
+		}
+};
+
+class SparkMaxVelocityCloseLoopControllerInterface : public SparkMaxCloseLoopControllerInterface
+{
+	protected:
+		bool setInitialMode(void) override
+		{
+			// Set to speed close loop mode
+			spark_max_->setPIDFReferenceCtrl(hardware_interface::kVelocity);
+			ROS_INFO_STREAM("Set up spark_max " << spark_max_.getName() << " in Close Loop Velocity mode");
+
+			return true;
+		}
+};
+
+class SparkMaxVoltageCloseLoopControllerInterface : public SparkMaxCloseLoopControllerInterface
+{
+	protected:
+		bool setInitialMode(void) override
+		{
+			// Set to speed close loop mode
+			spark_max_->setPIDFReferenceCtrl(hardware_interface::kVoltage);
+			ROS_INFO_STREAM("Set up spark_max " << spark_max_.getName() << " in Close Loop Voltage mode");
+
+			return true;
+		}
+};
+class SparkMaxFollowerControllerInterface : public SparkMaxFixedModeControllerInterface
+{
+	public:
+		bool initWithNode(hardware_interface::SparkMaxCommandInterface *smci,
+						  hardware_interface::SparkMaxStateInterface   *smsi,
+						  ros::NodeHandle &n) override
+		{
+			if (!tsi)
+			{
+				ROS_ERROR("NULL SparkMaxStateInterface in SparkMaxFollowerCommandInterface");
+				return false;
+			}
+
+			std::string follow_joint_name;
+			if (!n.getParam("follow_joint", follow_joint_name))
+			{
+				ROS_ERROR("No follow joint specified for SparkMaxFollowerControllerInterface");
+				return false;
+			}
+
+			hardware_interface::SparkMaxStateHandle follow_handle = smsi->getHandle(follow_joint_name);
+			const int follow_device_id = follow_handle->getDeviceId();
+j
+			if (!common_init(smci, n, hardware_interface::kFollowerSparkMax, follow_device_id))
+				return false;
+
+			ROS_INFO_STREAM("Launching follower " << params_.joint_name_ <<
+					" to follow Spark Max CAN ID " << follow_device_id <<
+					" (" << follow_handle.getName() << ")");
+			return true;
+		}
+		bool initWithNode(hardware_interface::SparkMaxCommandInterface *smci,
+						  hardware_interface::TalonStateInterface      *tsi,
+						  ros::NodeHandle &n) override
+		{
+			if (!tsi)
+			{
+				ROS_ERROR("NULL SparkMaxStateInterface in SparkMaxFollowerCommandInterface");
+				return false;
+			}
+
+			std::string follow_joint_name;
+			if (!n.getParam("follow_joint", follow_joint_name))
+			{
+				ROS_ERROR("No follow joint specified for SparkMaxFollowerControllerInterface");
+				return false;
+			}
+
+			hardware_interface::TalonStateHandle follow_handle = tsi->getHandle(follow_joint_name);
+			const int follow_device_id = follow_handle->getDeviceId();
+j
+			if (!common_init(smci, n, hardware_interface::kFollowerPhoenix, follow_device_id))
+				return false;
+
+			ROS_INFO_STREAM("Launching follower " << params_.joint_name_ <<
+					" to follow Talon CAN ID " << follow_device_id <<
+					" (" << follow_handle.getName() << ")");
+			return true;
+		}
+		// Maybe disable the setPIDFSlot call since that makes
+		// no sense for a non-PID controller mode?
+		void setCommand(const double /*command*/) override
+		{
+			ROS_WARN("Can't set a command in follower mode!");
+		}
+
+	private:
+		bool commonInit(hardware_interface::SparkMaxCommandInterface *tci,
+						ros::NodeHandle &n,
+						ExternalFollower follow_device_type,
+						int follow_device_id)
+		{
+			// Call base-class init to load config params
+			if (!SparkMaxControllerInterface::initWithNode(tci, nullptr, n))
+			{
+				ROS_ERROR("SparkMaxFollowerController base initWithNode failed");
+				return false;
+			}
+			// Set the mode and CAN ID of talon to follow at init time -
+			// since this class is derived from the FixedMode class
+			// these can't be reset. Hopefully we never have a case
+			// where a follower mode SparkMax changes which other
+			// SparkMax it is following during a match?
+			talon_->setFollowerType(follow_device_type);
+			talon_->setFollowerID(follow_device_id);
+		}
+};
 }
 

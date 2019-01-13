@@ -44,7 +44,7 @@ class SparkMaxHWState
 			, pidf_output_min_{-1}
 			, pidf_output_max_{1}
 			, pidf_reference_value_{0}
-			, pidf_reference_ctrl_{kDutyCycle}
+			, pidf_reference_ctrl_(kDutyCycle)
 			, pidf_reference_slot_(0)
 			, pidf_arb_feed_forward_{0}
 			, forward_limit_switch_polarity_(kNormallyOpen)
@@ -73,6 +73,14 @@ class SparkMaxHWState
 		{
 		}
 
+	int getDeviceId(void) const
+	{
+		return device_id_;
+	}
+	MotorType getMotorType(void) const
+	{
+		return motor_type;
+	}
 	void setSetPoint(double set_point)
 	{
 		set_point_ = set_point;
@@ -280,22 +288,12 @@ class SparkMaxHWState
 		return pidf_reference_value_[slot];
 	}
 
-	void setPIDFReferenceCtrl(size_t slot, ControlType pidf_reference_ctrl)
+	void setPIDFReferenceCtrl(ControlType pidf_reference_ctrl)
 	{
-		if (slot >= SPARK_MAX_PID_SLOTS)
-		{
-			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFReferenceCtrl() : invalid slot " << slot);
-			return;
-		}
 		pidf_reference_ctrl_[slot] = pidf_reference_ctrl;
 	}
-	ControlType getPIDFReferenceCtrl(size_t slot) const
+	ControlType getPIDFReferenceCtrl(void) const
 	{
-		if (slot >= SPARK_MAX_PID_SLOTS)
-		{
-			ROS_ERROR_STREAM("SparkMaxHWState::getPIDFReferenceCtrl() : invalid slot " << slot);
-			return kDutyCycle;
-		}
 		return pidf_reference_ctrl_[slot];
 	}
 	void setPIDFReferenceSlot(int slot)
