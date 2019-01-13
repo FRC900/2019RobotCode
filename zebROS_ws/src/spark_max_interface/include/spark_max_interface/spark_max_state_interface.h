@@ -23,7 +23,7 @@ enum MotorType { kBrushed, kBrushless };
 enum ControlType { kDutyCycle, kVelocity, kVoltage, kPosition };
 enum ExternalFollower { kFollowerDisabled, kFollowerSparkMax, kFollowerPhoenix };
 
-const size_t NUM_PID_SLOTS = 4;
+const size_t SPARK_MAX_PID_SLOTS = 4;
 
 class SparkMaxHWState
 {
@@ -45,6 +45,7 @@ class SparkMaxHWState
 			, pidf_output_max_{1}
 			, pidf_reference_value_{0}
 			, pidf_reference_ctrl_{kDutyCycle}
+			, pidf_reference_slot_(0)
 			, pidf_arb_feed_forward_{0}
 			, forward_limit_switch_polarity_(kNormallyOpen)
 			, forward_limit_switch_enabled_(false)
@@ -52,6 +53,12 @@ class SparkMaxHWState
 			, reverse_limit_switch_polarity_(kNormallyOpen)
 			, reverse_limit_switch_enabled_(false)
 			, reverse_limit_switch_(false)
+			, current_limit_(0) // TODO : better defaults
+			, current_limit_stall_(0)
+			, current_limit_free_(0)
+			, current_limit_rpm_(0)
+			, secondary_current_limit_(0)
+			, secondary_current_limit_cycles_(0)
 			, idle_mode_(kCoast)
 			, ramp_rate_(0)
 			, follower_type_(kFollowerDisabled)
@@ -104,7 +111,7 @@ class SparkMaxHWState
 
 	void setPGain(size_t slot, double p_gain)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setPGain() : invalid slot " << slot);
 			return;
@@ -113,7 +120,7 @@ class SparkMaxHWState
 	}
 	double getPGain(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getPGain() : invalid slot " << slot);
 			return -1;
@@ -123,7 +130,7 @@ class SparkMaxHWState
 
 	void setIGain(size_t slot, double i_gain)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setIGain() : invalid slot " << slot);
 			return;
@@ -132,7 +139,7 @@ class SparkMaxHWState
 	}
 	double getIGain(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getIGain() : invalid slot " << slot);
 			return -1;
@@ -142,7 +149,7 @@ class SparkMaxHWState
 
 	void setDGain(size_t slot, double d_gain)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setDGain() : invalid slot " << slot);
 			return;
@@ -151,7 +158,7 @@ class SparkMaxHWState
 	}
 	double getDGain(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getDGain() : invalid slot " << slot);
 			return -1;
@@ -161,7 +168,7 @@ class SparkMaxHWState
 
 	void setFGain(size_t slot, double f_gain)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setFGain() : invalid slot " << slot);
 			return;
@@ -170,7 +177,7 @@ class SparkMaxHWState
 	}
 	double getFGain(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getFGain() : invalid slot " << slot);
 			return -1;
@@ -180,7 +187,7 @@ class SparkMaxHWState
 
 	void setIZone(size_t slot, double i_zone)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setIZone() : invalid slot " << slot);
 			return;
@@ -189,7 +196,7 @@ class SparkMaxHWState
 	}
 	double getIZone(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getIZone() : invalid slot " << slot);
 			return -1;
@@ -199,7 +206,7 @@ class SparkMaxHWState
 
 	void setDFilter(size_t slot, double d_filter)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setDFilter() : invalid slot " << slot);
 			return;
@@ -208,7 +215,7 @@ class SparkMaxHWState
 	}
 	double getDFilter(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getDFilter() : invalid slot " << slot);
 			return -1;
@@ -218,7 +225,7 @@ class SparkMaxHWState
 
 	void setPIDFOutputMin(size_t slot, double pidf_output_min)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFOutputMin() : invalid slot " << slot);
 			return;
@@ -227,7 +234,7 @@ class SparkMaxHWState
 	}
 	double getPIDFOutputMin(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getPIDFOutputMin() : invalid slot " << slot);
 			return std::numeric_limits<double>::max();
@@ -237,7 +244,7 @@ class SparkMaxHWState
 
 	void setPIDFOutputMax(size_t slot, double pidf_output_max)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFOutputMax() : invalid slot " << slot);
 			return;
@@ -246,7 +253,7 @@ class SparkMaxHWState
 	}
 	double getPIDFOutputMax(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getPIDFOutputMax() : invalid slot " << slot);
 			return -std::numeric_limits<double>::max();
@@ -256,7 +263,7 @@ class SparkMaxHWState
 
 	void setPIDFReferenceOutput(size_t slot, double pidf_reference_value)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFReferenceOutput() : invalid slot " << slot);
 			return;
@@ -265,7 +272,7 @@ class SparkMaxHWState
 	}
 	double getPIDFReferenceOutput(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getPIDFReferenceOutput() : invalid slot " << slot);
 			return 0;
@@ -275,7 +282,7 @@ class SparkMaxHWState
 
 	void setPIDFReferenceCtrl(size_t slot, ControlType pidf_reference_ctrl)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFReferenceCtrl() : invalid slot " << slot);
 			return;
@@ -284,17 +291,30 @@ class SparkMaxHWState
 	}
 	ControlType getPIDFReferenceCtrl(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getPIDFReferenceCtrl() : invalid slot " << slot);
 			return kDutyCycle;
 		}
 		return pidf_reference_ctrl_[slot];
 	}
+	void setPIDFReferenceSlot(int slot)
+	{
+		if ((slot < 0) || (slot >= SPARK_MAX_PID_SLOTS))
+		{
+			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFReferenceSlot() : invalid slot " << slot);
+			return;
+		}
+		pidf_refrence_slot_ = slot;
+	}
+	int getPIDFReferenceSlot(void) const
+	{
+		return pidf_reference_slot_;
+	}
 
 	void setPIDFArbFeedForward(size_t slot, double pidf_arb_feed_forward)
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFArbFeedForward() : invalid slot " << slot);
 			return;
@@ -303,7 +323,7 @@ class SparkMaxHWState
 	}
 	double getPIDFArbFeedForward(size_t slot) const
 	{
-		if (slot >= NUM_PID_SLOTS)
+		if (slot >= SPARK_MAX_PID_SLOTS)
 		{
 			ROS_ERROR_STREAM("SparkMaxHWState::getPIDFArbFeedForward() : invalid slot " << slot);
 			return -1;
@@ -519,17 +539,18 @@ class SparkMaxHWState
 		double              velocity_;
 
 		// PID Controller
-		double              p_gain_[NUM_PID_SLOTS];
-		double              i_gain_[NUM_PID_SLOTS];
-		double              d_gain_[NUM_PID_SLOTS];
-		double              f_gain_[NUM_PID_SLOTS];
-		double              i_zone_[NUM_PID_SLOTS];
-		double              d_filter_[NUM_PID_SLOTS];
-		double              pidf_output_min_[NUM_PID_SLOTS];
-		double              pidf_output_max_[NUM_PID_SLOTS];
-		double              pidf_reference_value_[NUM_PID_SLOTS];
-		ControlType         pidf_reference_ctrl_[NUM_PID_SLOTS];
-		double              pidf_arb_feed_forward_[NUM_PID_SLOTS];
+		double              p_gain_[SPARK_MAX_PID_SLOTS];
+		double              i_gain_[SPARK_MAX_PID_SLOTS];
+		double              d_gain_[SPARK_MAX_PID_SLOTS];
+		double              f_gain_[SPARK_MAX_PID_SLOTS];
+		double              i_zone_[SPARK_MAX_PID_SLOTS];
+		double              d_filter_[SPARK_MAX_PID_SLOTS];
+		double              pidf_output_min_[SPARK_MAX_PID_SLOTS];
+		double              pidf_output_max_[SPARK_MAX_PID_SLOTS];
+		double              pidf_reference_value_[SPARK_MAX_PID_SLOTS];
+		ControlType         pidf_reference_ctrl_[SPARK_MAX_PID_SLOTS];
+		int                 pidf_reference_slot_;
+		double              pidf_arb_feed_forward_[SPARK_MAX_PID_SLOTS];
 
 		// Forward and Reverse Limit switches
 		LimitSwitchPolarity forward_limit_switch_polarity_;
