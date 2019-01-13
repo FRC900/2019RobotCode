@@ -79,7 +79,7 @@ class SparkMaxHWState
 	}
 	MotorType getMotorType(void) const
 	{
-		return motor_type;
+		return motor_type_;
 	}
 	void setSetPoint(double set_point)
 	{
@@ -290,11 +290,11 @@ class SparkMaxHWState
 
 	void setPIDFReferenceCtrl(ControlType pidf_reference_ctrl)
 	{
-		pidf_reference_ctrl_[slot] = pidf_reference_ctrl;
+		pidf_reference_ctrl_ = pidf_reference_ctrl;
 	}
 	ControlType getPIDFReferenceCtrl(void) const
 	{
-		return pidf_reference_ctrl_[slot];
+		return pidf_reference_ctrl_;
 	}
 	void setPIDFReferenceSlot(int slot)
 	{
@@ -303,7 +303,7 @@ class SparkMaxHWState
 			ROS_ERROR_STREAM("SparkMaxHWState::setPIDFReferenceSlot() : invalid slot " << slot);
 			return;
 		}
-		pidf_refrence_slot_ = slot;
+		pidf_reference_slot_ = slot;
 	}
 	int getPIDFReferenceSlot(void) const
 	{
@@ -401,13 +401,13 @@ class SparkMaxHWState
 		return current_limit_stall_;
 	}
 
-	void setCurrentLimitRPM(unsigned int current_limit_RPM)
+	void setCurrentLimitRPM(unsigned int current_limit_rpm)
 	{
-		current_limit_RPM_ = current_limit_RPM;
+		current_limit_rpm_ = current_limit_rpm;
 	}
 	unsigned int getCurrentLimitRPM(void) const
 	{
-		return current_limit_RPM_;
+		return current_limit_rpm_;
 	}
 
 	void setSecondaryCurrentLimit(unsigned int secondary_current_limit)
@@ -546,7 +546,7 @@ class SparkMaxHWState
 		double              pidf_output_min_[SPARK_MAX_PID_SLOTS];
 		double              pidf_output_max_[SPARK_MAX_PID_SLOTS];
 		double              pidf_reference_value_[SPARK_MAX_PID_SLOTS];
-		ControlType         pidf_reference_ctrl_[SPARK_MAX_PID_SLOTS];
+		ControlType         pidf_reference_ctrl_;
 		int                 pidf_reference_slot_;
 		double              pidf_arb_feed_forward_[SPARK_MAX_PID_SLOTS];
 
@@ -562,7 +562,7 @@ class SparkMaxHWState
 		unsigned int        current_limit_;
 		unsigned int        current_limit_stall_;
 		unsigned int        current_limit_free_;
-		unsigned int        current_limit_RPM_;
+		unsigned int        current_limit_rpm_;
 		double              secondary_current_limit_;
 		int                 secondary_current_limit_cycles_;
 

@@ -8,7 +8,7 @@ project(spark_max_controllers)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  contol_msgs
+  control_msgs
   controller_interface
   dynamic_reconfigure
   message_generation
@@ -109,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES spark_max_controllers
-#  CATKIN_DEPENDS contol_msgs controller_interface dynamic_reconfigure message_generation realtime_tools roscpp spark_max_interface
+#  CATKIN_DEPENDS control_msgs controller_interface dynamic_reconfigure message_generation realtime_tools roscpp spark_max_interface
 #  DEPENDS system_lib
 )
 

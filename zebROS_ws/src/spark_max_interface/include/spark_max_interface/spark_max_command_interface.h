@@ -25,7 +25,7 @@ class SparkMaxHWCommand
 			, pidf_reference_value_changed_{false}
 			, pidf_reference_ctrl_(kDutyCycle)
 			, pidf_reference_ctrl_changed_(false)
-			, pidf_refrence_slot_(0)
+			, pidf_reference_slot_(0)
 			, pidf_reference_slot_changed_(false)
 			, pidf_arb_feed_forward_{0}
 			, pidf_config_changed_{false}
@@ -323,7 +323,7 @@ class SparkMaxHWCommand
 		bool changedPIDFReferenceCtrl(ControlType &pidf_reference_ctrl)
 		{
 			pidf_reference_ctrl = pidf_reference_ctrl_;
-			if (pidf_refrence_ctrl_changed_)
+			if (pidf_reference_ctrl_changed_)
 			{
 				pidf_reference_ctrl_changed_ = false;
 				return true;
@@ -356,7 +356,6 @@ class SparkMaxHWCommand
 		bool changedPIDFConfig(size_t slot,
 				double &output_min,
 				double &output_max,
-				double &reference_ctrl,
 				double &arb_feed_forward)
 		{
 			if (slot >= SPARK_MAX_PID_SLOTS)
@@ -366,7 +365,6 @@ class SparkMaxHWCommand
 			}
 			output_min = pidf_output_min_[slot];
 			output_max = pidf_output_max_[slot];
-			reference_ctrl = pidf_reference_ctrl_[slot];
 			arb_feed_forward = pidf_arb_feed_forward_[slot];
 			if (pidf_config_changed_[slot])
 			{
@@ -383,9 +381,9 @@ class SparkMaxHWCommand
 				ROS_ERROR_STREAM("SparkMaxHWCommand::setPIDFReferenceSlot() : invalid slot " << slot);
 				return;
 			}
-			if (slot != pidf_refrence_slot_)
+			if (slot != pidf_reference_slot_)
 			{
-				pidf_reference_slot_ = slot
+				pidf_reference_slot_ = slot;
 				pidf_reference_slot_changed_ = true;
 			}
 		}
@@ -394,12 +392,12 @@ class SparkMaxHWCommand
 			return pidf_reference_slot_;
 		}
 
-		bool changedPIDReferenceSlot(int &pid_reference_slot)
+		bool changedPIDFReferenceSlot(int &pidf_reference_slot)
 		{
-			pidf_reference_slot = pid_reference_slot_;
-			if (pid_reference_slot_changed_)
+			pidf_reference_slot = pidf_reference_slot_;
+			if (pidf_reference_slot_changed_)
 			{
-				pid_refrence_slot_changed_ = false;
+				pidf_reference_slot_changed_ = false;
 				return true;
 			}
 			return false;
@@ -715,7 +713,7 @@ class SparkMaxHWCommand
 		bool                pidf_reference_value_changed_[SPARK_MAX_PID_SLOTS];
 
 		ControlType         pidf_reference_ctrl_;
-		ControlType         pidf_reference_ctrl_changed_;
+		bool                pidf_reference_ctrl_changed_;
 		int                 pidf_reference_slot_;
 		bool                pidf_reference_slot_changed_;
 		double              pidf_arb_feed_forward_[SPARK_MAX_PID_SLOTS];
