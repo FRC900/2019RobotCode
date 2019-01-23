@@ -55,6 +55,21 @@
 			<remap from="/frcrobot_jetson/joystick_states" to="/frcrobot_rio/joystick_states"/>
 			<remap from="/frcrobot_jetson/navx_mxp" to="/frcrobot_rio/navx_mxp"/>
 		</node>
+
+		<node name="orient_pid" pkg="pid" type="controller" >
+		    <param name="node_name" value="orient_pid_node" />
+		    <param name="Kp" value="5.0" />
+		    <param name="Ki" value="0.0" />
+		    <param name="Kd" value="0.1" />
+		    <param name="upper_limit" value="10" />
+		    <param name="lower_limit" value="-10" />
+		    <param name="windup_limit" value="10" />
+		    <param name="max_loop_frequency" value="100.0" />
+		    <param name="min_loop_frequency" value="100.0" />
+	            <param name="topic_from_controller" value="orient_pid/orient_control_effort" />	
+                    <param name="setpoint_topic" value="orient_setpoint" />
+		</node>
+
 	</group>
 
 	<!-- Run this on the Jetson, but put it in the Rio namespace since the
