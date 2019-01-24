@@ -70,6 +70,8 @@
                     <param name="setpoint_topic" value="orient_setpoint" />
 		</node>
 
+		<node name="publish_pid_cmd_vel" pkg="behaviors" type="publish_pid_cmd_vel" />
+
 	</group>
 
 	<!-- Run this on the Jetson, but put it in the Rio namespace since the
