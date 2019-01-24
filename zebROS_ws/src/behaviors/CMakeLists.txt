@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   ros_control_boilerplate
   talon_swerve_drive_controller
   swerve_point_generator
+  geometry_msgs
 )
 
 include_directories(
@@ -127,7 +128,7 @@ generate_messages(DEPENDENCIES actionlib_msgs std_msgs)
 catkin_package(
    INCLUDE_DIRS include
    #LIBRARIES behaviors
-   CATKIN_DEPENDS actionlib nav_msgs roscpp rospy std_msgs
+   CATKIN_DEPENDS actionlib nav_msgs roscpp rospy std_msgs geometry_msgs
    DEPENDS 
 )
 # add_executable(arm_server_node src/arm_server.cpp)
@@ -141,6 +142,10 @@ catkin_package(
 # add_executable(intake_server_node src/intake_server.cpp)
 # target_link_libraries(intake_server_node ${catkin_LIBRARIES})
 # add_dependencies(intake_server_node ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(publish_pid_cmd_vel_node src/publish_pid_cmd_vel.cpp)
+target_link_libraries(publish_pid_cmd_vel_node ${catkin_LIBRARIES})
+add_dependencies(publish_pid_cmd_vel_node ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #add_executable(dummy src/dummy.cpp)
 #target_link_libraries(
