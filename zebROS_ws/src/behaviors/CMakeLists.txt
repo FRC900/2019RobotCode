@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   talon_swerve_drive_controller
   swerve_point_generator
   geometry_msgs
+  screen_to_world
 )
 
 include_directories(
@@ -146,6 +147,10 @@ catkin_package(
 add_executable(publish_pid_cmd_vel_node src/publish_pid_cmd_vel.cpp)
 target_link_libraries(publish_pid_cmd_vel_node ${catkin_LIBRARIES})
 add_dependencies(publish_pid_cmd_vel_node ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(tape_setpoint_publisher_node src/tape_setpoint_publisher.cpp)
+target_link_libraries(tape_setpoint_publisher_node ${catkin_LIBRARIES})
+add_dependencies(tape_setpoint_publisher_node ${behaviors_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #add_executable(dummy src/dummy.cpp)
 #target_link_libraries(
