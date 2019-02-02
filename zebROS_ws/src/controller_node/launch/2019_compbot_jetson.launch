@@ -43,17 +43,6 @@
 		<node name="test_client" pkg="path_to_goal" type="test_client" output="screen" />
 		<node name="path_follower" pkg="swerve_point_generator" type="path_follower" output="screen"/>
 
-		<!-- robot_localization -->
-		<node name="ekf_localization_node" pkg="robot_localization" type="ekf_localization_node">
-            <param name="imu0" value="/frcrobot_rio/navx_mxp"/>
-			<rosparam param="imu0_config">[false, false, false, false, false, true, true, true, false, false, false, true, true, true, false]</rosparam>
-            <param name="odom0" value="/frcrobot_jetson/swerve_drive_controller/odom"/>
-			<rosparam param="odom0_config">[true, true, false, false, false, true, true, true, false, false, false, true, false, false, false]</rosparam>
-            <param name="two_d_mode" value="true" />
-            <param name="frequency" value="50.0" />
-        </node>
-
-
 		<node name="heartbeat_jetson" pkg="heartbeat_node" type="heartbeat" output="screen" />
 
 		<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
