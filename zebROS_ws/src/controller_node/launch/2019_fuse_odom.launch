@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+
+<launch>
+  <!-- 
+  Slave Node Launcher
+  # ZED Wrapper Instance
+  # NavX
+  # LIDAR
+  # TF2 static transforms for ZED, NavX and LIDAR
+  # Dummy odom->map identity transform as a placeholder until
+  #    localization works
+  # ukf node to fuse NavX, ZED and wheel encoder odometry
+  # move_base
+	-->
+  <arg name="name" default="zed_odom" />
+  
+  <group ns="$(arg name)">
+    <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+	  <arg name="base_frame" value="$(arg name)_center" />
+    </include>
+  </group>
+	<!-- 
+		ransform: x y z roll pitch yaw 
+		Need 1 transform for each sensor source mapping
+		from the base_link (fixed known point on the
+		robot, for example, the center) to the location
+		of each sensor
+	-->
+
+  <!-- 
+	   For testing the ZED is the center of the robot, since
+		the ZED is the only bit of hardware we're using.
+   -->
+<node name="ekf_localization_node" pkg="robot_localization" type="ekf_localization_node">
+	<param name="imu0" value="/frcrobot_rio/navx_mxp"/>
+	<rosparam param="imu0_config">[false, false, false,
+                                   false, false, true,
+                                   false, false, false,
+                                   false, false, false,
+                                   false, false, false]</rosparam>
+    <param name="odom0" value="/frcrobot_jetson/swerve_drive_controller/odom"/>
+    <rosparam param="odom0_config">[true, true, false,
+                                    false, false, true,
+                                    true, true, false,
+                                    false, false, true,
+                                       false, false, false]</rosparam>
+    <param name="odom1" value="/zed_odom"/>
+    <rosparam param="odom1_config">[true, true, false,
+                                    false, false, true,
+                                    true, true, false,
+                                    false, false, true,
+                                    false, false, false]</rosparam>
+	<param name="two_d_mode" value="true" />
+	<param name="frequency" value="50.0" />
+</node>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_$(arg name)_center" args="0 0 0 0 0 0 base_link $(arg name)_center" />
+
+  <!-- TODO : check rotation of the NavX -->
+  <!--node name="navx_publisher_node" pkg="navx_publisher" type="navx_publisher_node" respawn="true" /-->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_navx" args="0 0 0.025 -1.5708 0 0 base_link navx_frame" />
+
+  <!--include file="$(find controller_node)/launch/fuse_odom.launch"/-->
+
+  <!-- This will eventually be handled by localization of some sort
+	   but for now include a dummy transform so map and odom are 
+       linked 
+	-->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="dummy_odom_to_map" args="0 0 0 0 0 0 map odom" />
+
+</launch>
