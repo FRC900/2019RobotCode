@@ -626,6 +626,8 @@ void FRCRobotHWInterface::talon_read_thread(std::shared_ptr<ctre::phoenix::motor
 		{
 			motor_output_percent = talon->GetMotorOutputPercent();
 			safeTalonCall(talon->GetLastError(), "GetMotorOutputPercent");
+			// TODO : remove this hack
+			motor_output_percent = talon->GetSelectedSensorPosition(pidIdx);
 
 			// TODO : Check this
 			safeTalonCall(talon->GetFaults(faults), "GetFaults");
