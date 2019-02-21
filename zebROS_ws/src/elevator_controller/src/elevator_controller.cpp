@@ -73,7 +73,7 @@ void ElevatorController::update(const ros::Time &/*time*/, const ros::Duration &
 	if (zeroed_) // run normally, seeking to various positions
 	{
 		const double setpoint = *(position_command_.readFromRT());
-		elevator_joint_.setMode(hardware_interface::TalonMode_Position);
+		//elevator_joint_.setMode(hardware_interface::TalonMode_Position);
 		elevator_joint_.setCommand(setpoint);
 
 		// Add arbitrary feed forward for upwards motion
@@ -134,7 +134,7 @@ bool ElevatorController::cmdService(elevator_controller::ElevatorSrv::Request  &
 	if(isRunning())
 	{
 		//adjust peak output appropriately
-		if(req.go_slow)
+		/*if(req.go_slow)
 		{
 			elevator_joint_.setPeakOutputForward(slow_peak_output_);
 			elevator_joint_.setPeakOutputReverse(-slow_peak_output_);
@@ -144,7 +144,7 @@ bool ElevatorController::cmdService(elevator_controller::ElevatorSrv::Request  &
 			elevator_joint_.setPeakOutputForward(1.0);
 			elevator_joint_.setPeakOutputReverse(-1.0);
 			ROS_INFO("Elevator controller: normal peak output");
-		}
+		}*/
 
 		position_command_.writeFromNonRT(req.position);
 		ROS_INFO_STREAM("writing " << std::to_string(req.position) << " to elevator controller");
