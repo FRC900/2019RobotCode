@@ -98,6 +98,13 @@ bool ManualTogglePush = false;
 bool ManualToggleKicker = false;
 bool ManualToggleArm = false;
 
+bool in_sandstorm = false;
+double sandstorm_speed_limit;
+
+void matchDataCallback(const frc_msgs::MatchSpecificData &msg) {
+	in_sandstorm = msg.Autonomous;
+}
+
 void dead_zone_check(double &val1, double &val2)
 {
 	if (fabs(val1) <= joystick_deadzone && fabs(val2) <= joystick_deadzone)
@@ -184,6 +191,10 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 
 		leftStickX =  pow(fabs(leftStickX), joystick_pow) * max_speed;
 		leftStickY =  pow(fabs(leftStickY), joystick_pow) * max_speed;
+		if(in_sandstorm) {
+			leftStickX *= sandstorm_speed_limit;
+			leftStickY *= sandstorm_speed_limit;
+		}
 		double rotation = pow(fabs(rightStickX), rotation_pow) * max_rot;
 
 		leftStickX = copysign(leftStickX, joystick_states_array[0].leftStickX);
@@ -898,6 +909,10 @@ int main(int argc, char **argv)
 	{
 		ROS_ERROR("Could not read max_rot in teleop_joystick_comp");
 	}
+	if(!n_params.getParam("sandstorm_speed_limit", sandstorm_speed_limit))
+	{
+		ROS_ERROR("Could not read sandstorm_speed_limit in teleop_joystick_comp");
+	}
 
 	std::vector <ros::Subscriber> subscriber_array;
     navX_angle = M_PI / 2;
@@ -928,6 +943,7 @@ int main(int argc, char **argv)
 	elevator_setpoint = n.advertise<std_msgs::Int8>("elevator_setpoint",1);
 	ros::Subscriber navX_heading  = n.subscribe("navx_mxp", 1, &navXCallback);
 	ros::Subscriber joint_states_sub = n.subscribe("/frcrobot_jetson/joint_states", 1, &jointStateCallback);
+	ros::Subscriber match_data_sub = n.subscribe("/frcrobot_jetson/match_data", 1, matchDataCallback);
 
 	//initialize actionlib clients
 	intake_cargo_ac = std::make_shared<actionlib::SimpleActionClient<behaviors::IntakeAction>>("/cargo_intake/cargo_intake_server", true);
@@ -951,6 +967,8 @@ int main(int argc, char **argv)
 	enable_align = n.advertise<std_msgs::Bool>("/align_server/align_pid/pid_enable", 1);
 
 	ros::ServiceServer robot_orient_service = n.advertiseService("robot_orient", orientCallback);
+
+	
 
 	ROS_WARN("joy_init");
 
