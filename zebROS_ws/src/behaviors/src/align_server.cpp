@@ -87,20 +87,32 @@ class AlignAction {
 		void navx_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			orient_aligned_ = (fabs(msg.data[0]) < orient_error_threshold);
+			if(orient_aligned_){
+				ROS_WARN_THROTTLE(0.25, "ORIENT ALIGNED");
+			}
 			//ROS_WARN_STREAM_THROTTLE(1, "navX error: " << fabs(msg.data[0]));
 		}
 		void x_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			x_aligned_ = (fabs(msg.data[0]) < x_error_threshold);
+			if(x_aligned_){
+				ROS_WARN_THROTTLE(0.25, "DISTANCE ALIGNED");
+			}
 			//ROS_WARN_STREAM("distance error: " << msg.data[0]);
 		}
 		void y_error_cb(const std_msgs::Bool &msg)
 		{
 			y_aligned_ = msg.data;
+			if(y_aligned_){
+				ROS_WARN_THROTTLE(0.25, "TERABEE ALIGNED");
+			}
 		}
 		void cargo_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			cargo_aligned_ = (fabs(msg.data[0]) < cargo_error_threshold);
+			if(cargo_aligned_){
+				ROS_WARN_THROTTLE(0.25, "CARGO ALIGNED");
+			}
 			//ROS_WARN_STREAM_THROTTLE(1, "cargo error: " << msg.data[0]);
 		}
 
@@ -142,6 +154,7 @@ class AlignAction {
 				r.sleep();
 
                 if((orient_aligned_ || orient_timed_out) && !elevator_moved) {
+					ROS_WARN("Orient aligned or timed out:  MOVING ELEVATOR");
                     bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(elevator_timeout - (ros::Time::now().toSec() - start_time)));
                     if(finished_before_timeout) {
                         actionlib::SimpleClientGoalState state = ac_elevator_.getState();
@@ -177,6 +190,15 @@ class AlignAction {
 				terabee_msg.data = (orient_aligned_ || orient_timed_out) && x_aligned_;     //Enable terabee node when distance is aligned and  orient aligns or orient times out
 				enable_align_msg.data = !aligned;										    //Enable publishing pid vals until aligned
 
+				if(orient_msg.data){
+					ROS_WARN_THROTTLE(0.25, "ORIENTING");
+				}
+				if(distance_msg.data){
+					ROS_WARN_THROTTLE(0.25, "DISTANCING");
+				}
+				if(terabee_msg.data){
+					ROS_WARN_THROTTLE(0.25, "TERABEEING");
+				}
 				//CARGO VS HATCH PANEL
 				//only difference is enable_cargo_pub_ vs enable_y_pub_
 				//

@@ -247,15 +247,17 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		if(joystick_states_array[0].buttonAPress)
 		{
 			//Align the robot
-			ROS_WARN("Joystick1: buttonAPress - Auto Align");
+			ROS_WARN("Joystick1: buttonAPress - Auto Align USES LINEBREAK"); 
 
 			preemptActionlibServers();
 			behaviors::AlignGoal goal;
 			goal.trigger = true;
 			if(cargo_linebreak_true_count > linebreak_debounce_iterations) {
+                ROS_WARN("Joystick1: buttonAPress - Auto Align(HAS CARGO!!) USES LINEBREAK"); 
 				goal.has_cargo = true;
 			}
 			else {
+                ROS_WARN("Joystick1: buttonAPress - Auto Align(HAS HATCH) USES LINEBREAK"); 
 				goal.has_cargo = false;
 			}
 			align_ac->sendGoal(goal);
@@ -444,6 +446,21 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		if(joystick_states_array[0].bumperLeftRelease)
 		{
 			ROS_INFO_STREAM("Joystick1: bumperLeftRelease");
+		}
+		if(joystick_states_array[0].bumperRightPress)  {
+			//Align the robot
+			ROS_WARN("Joystick1: bumperRightPress(ASSUMES HATCH PANEL) - Auto Align");
+
+			preemptActionlibServers();
+			behaviors::AlignGoal goal;
+			goal.trigger = true;
+			if(cargo_linebreak_true_count > linebreak_debounce_iterations) {
+				goal.has_cargo = true;
+			}
+			else {
+				goal.has_cargo = false;
+			}
+			align_ac->sendGoal(goal);
 		}
 		//Joystick1: bumperRight
 		//if(joystick_states_array[0].bumperRightPress)

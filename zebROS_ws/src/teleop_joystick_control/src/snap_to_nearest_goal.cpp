@@ -194,12 +194,15 @@ int main(int argc, char **argv)
 		std_msgs::Float64 navX_state;
 		double cur_angle = angles::normalize_angle_positive(-1*navX_angle.load(std::memory_order_relaxed));
 		if(has_panel) {
+            ROS_WARN_THROTTLE(0.25, "snap angle: HAS PANEL");
 			snap_angle = nearest_angle(hatch_panel_angles, cur_angle + M_PI/2) - M_PI/2; //TODO remove having to multiply negative one
 		}
+        /*
 		else if(has_cargo) {
 			snap_angle = nearest_angle(cargo_angles, cur_angle);
-		}
+		}*/
 		else {
+            ROS_WARN_THROTTLE(0.25, "snap angle: HAS NOTHING");
 			snap_angle = nearest_angle(nothing_angles, cur_angle);
 		}
 		double heading = angles::normalize_angle(-1*navX_angle.load(std::memory_order_relaxed));
