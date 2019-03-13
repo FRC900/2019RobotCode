@@ -17,6 +17,7 @@ void FRCRobotPhoenixSimInterface::init(void)
 {
 	for (size_t i = 0; i < num_can_talon_srxs_; i++)
 	{
+		ROS_INFO_STREAM("creating Talon of id " << can_talon_srx_can_ids_[i]);
 		c_SimCreate(DeviceType::TalonSRXType,can_talon_srx_can_ids_[i]);
 	}
 
@@ -26,6 +27,9 @@ void FRCRobotPhoenixSimInterface::init(void)
 	ros::Duration(1.0).sleep();
 
 	hal::init::InitializeHAL();
+
+	ROS_INFO_STREAM("run hal robot = " << run_hal_robot_):
+
 	FRCRobotHWInterface::init();
 }
 
