@@ -2,6 +2,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "GoalDetector.hpp"
 #include "Utilities.hpp"
+#include "ros/ros.h"
 
 using namespace std;
 using namespace cv;
@@ -71,7 +72,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 	for(size_t i = 0; i < left_info.size(); i++) {
 		for(size_t j = 0; j < right_info.size(); j++) {
 #ifdef VERBOSE_BOILER
-			cout << i << " " << j << " ij" << endl;
+			ROS_WARN("TRYING i: %i j: %j",i,j);
 #endif
 			// Index of the contour corrsponding to
 			// left and right goal. Since we filter out
@@ -82,12 +83,12 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if (left_vindex == right_vindex)
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " " << left_vindex << " " << right_vindex << " same contour" << endl;
+				ROS_INFO("FAILED - same contour: %i",left_vindex);
 #endif
 				continue;
 			}
 #ifdef VERBOSE_BOILER
-			cout << left_info[i].vec_index << " " << right_info[j].vec_index << " cidx" << endl;
+			ROS_INFO("indices L:%i R:%i",left_vindex,right_vindex);
 #endif
 
 			// Make sure the goal parts are reasonably close
@@ -99,7 +100,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if (screenDist > (2 * (left_info[i].br.width + right_info[i].br.width)))
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " " << screenDist << " screen dist check failed" << endl;
+				ROS_INFO("FAILED - screen distance: %f",screenDist);
 #endif
 				continue;
 			}
@@ -108,7 +109,6 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			Rect rightBr = right_info[j].br;
 
 #ifdef VERBOSE_BOILER
-			cout << leftBr << " " << rightBr << endl;
 #endif
 
 			// Make sure the two contours are
@@ -118,7 +118,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if ((area_ratio > max_area_ratio) || (area_ratio < (1 / max_area_ratio)))
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " " << area_ratio << " screen area ratio failed" << endl;
+				ROS_INFO("FAILED - area ratio: %f",area_ratio);
 #endif
 				continue;
 			}
@@ -128,7 +128,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if ((leftBr.br().y - (leftBr.width/2)) < rightBr.y)
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " " << leftBr.br().y << " " << rightBr.y << " stacked check 1 failed" << endl;
+				ROS_INFO("FAILED - stacked check 1 L:%f R:%f",leftBr.br().y,rightBr.y);
 #endif
 				continue;
 			}
@@ -136,7 +136,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if ((leftBr.y + (leftBr.width/2)) > rightBr.br().y)
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " " << leftBr.br().y << " " << rightBr.y << " stacked check 2 failed" << endl;
+				ROS_INFO("FAILED - stacked check 2 L:%f R:%f",leftBr.br().y,rightBr.y);
 #endif
 				continue;
 			}
@@ -146,7 +146,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if ((rightBr.br().y - (rightBr.width/2)) < leftBr.y)
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " " << leftBr.br().y << " " << rightBr.y << " stacked check 3 failed" << endl;
+				ROS_INFO("FAILED - stacked check 3 L:%f R:%f",leftBr.br().y,rightBr.y);
 #endif
 				continue;
 			}
@@ -154,7 +154,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if ((rightBr.y + (rightBr.width/2)) > leftBr.br().y)
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " " << leftBr.br().y << " " << rightBr.y << " stacked check 4 failed" << endl;
+				ROS_INFO("FAILED - stacked check 4 L:%f R:%f",leftBr.br().y,rightBr.y);
 #endif
 				continue;
 			}
@@ -178,7 +178,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 				if (fabsf(dx) > .5)
 				{
 #ifdef VERBOSE_BOILER
-					cout << i << " " << j << " " << dx << " dx check failed" << endl;
+					ROS_INFO("FAILED - dx check: %f",dx);
 #endif
 					continue;
 				}
@@ -188,7 +188,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 				if (dist > 1.25)
 				{
 #ifdef VERBOSE_BOILER
-					cout << i << " " << j << " " << dist << " distance check failed" << endl;
+					ROS_INFO("FAILED - dist check: %f",dist);
 #endif
 					continue;
 				}
@@ -218,22 +218,20 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if(left_info[i].rtRect.angle > right_info[j].rtRect.angle)
 			{
 				//cout << "Angle " << best_result_index_left << ": " << left_info[i].rtRect.angle << " Angle " << best_result_index_right << ": " << right_info[j].rtRect.angle << endl;
-				cout << i << " " << j << "Angle check failed" << endl;
+				ROS_INFO("FAILED - angle check");
 
 				continue;
 			}
 
 			if(left_info[i].pos.x > right_info[j].pos.x)
 			{
-				cout  << "Left too far to the right" << endl;
-
+				ROS_INFO("FAILED - left > right");
 				continue;
 			}
 
 			if(right_info[j].pos.x < left_info[i].pos.x)
 			{
-				cout  << "Right goal too far to the left" << endl;
-
+				ROS_INFO("FAILED - right < left");
 				continue;
 			}
 
@@ -245,7 +243,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			if ((left_info[i].rect & right_info[j].rect).area() > (.5 * min(left_info[i].rect.area(), right_info[j].rect.area())))
 			{
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " overlap check failed" << endl;
+				ROS_INFO("FAILED - overlap check");
 #endif
 				continue;
 			}
@@ -256,7 +254,7 @@ void GoalDetector::findBoilers(const cv::Mat& image, const cv::Mat& depth) {
 			// pair, keep it as the best result
 			if(!found_goal || (left_info[best_result_index_left].confidence + right_info[best_result_index_right].confidence <= left_info[i].confidence + right_info[j].confidence)) {
 #ifdef VERBOSE_BOILER
-				cout << i << " " << j << " found a better goal!" << endl;
+				ROS_INFO("SUCCESS - new max confidence");
 #endif
 				found_goal = true;
 				best_result_index_left = i;
