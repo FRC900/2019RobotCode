@@ -30,7 +30,7 @@ class IntakeHatchPanelAction
 
 		ros::ServiceClient panel_controller_client_;
 
-		ros::Subscriber GoalDetectSub_;
+		/*ros::Subscriber GoalDetectSub_;*/
 
 	public:
 		IntakeHatchPanelAction(const std::string &name) :
@@ -98,12 +98,16 @@ class IntakeHatchPanelAction
 			elev_goal.place_cargo = false;
 			elev_goal.raise_intake_after_success = true;
 			ac_elevator_.sendGoal(elev_goal);
-
+			//determine if elevator server timed out or did not time out
 			bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(elevator_timeout - (ros::Time::now().toSec() - start_time)));
+			//if finished before timeout then it has either succeeded or failed otherwise it timed out 
 			if(finished_before_timeout) {
+				//determine final state of elevator server
 				actionlib::SimpleClientGoalState state = ac_elevator_.getState();
+				//test if failed
 				if(state.toString() != "SUCCEEDED") {
 					ROS_ERROR("%s: Elevator Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
+					preempted = true;
 				}
 				else {
 					ROS_WARN("%s: Elevator Server ACTION SUCCEEDED",action_name_.c_str());
