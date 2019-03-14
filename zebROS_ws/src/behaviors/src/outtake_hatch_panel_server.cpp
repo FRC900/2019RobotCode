@@ -7,6 +7,8 @@
 #include <panel_intake_controller/PanelIntakeSrv.h>
 #include <behaviors/PlaceAction.h>
 #include <behaviors/ElevatorAction.h>
+#include <frc_msgs/JoystickState.h>
+#include <behaviors/FinishActionlib.h> //teleop joystick comp calls this to say finish the action after it's paused
 
 //define global variables that will be defined based on config values
 double elevator_timeout;
@@ -27,7 +29,8 @@ class OuttakeHatchPanelAction
 
 		ros::ServiceClient panel_controller_client_;
 
-		ros::Subscriber GoalDetectSub_;
+		ros::ServiceServer finish_actionlib_server_;
+		bool finish_command_sent_; //stores whether teleop joystick comp sent a request to finish the action, which will pause halfway through. (on button release)
 
 	public:
 		OuttakeHatchPanelAction(const std::string &name) :
@@ -35,20 +38,18 @@ class OuttakeHatchPanelAction
 			action_name_(name),
 			ac_elevator_("/elevator/elevator_server", true)
 	{
-		//GoalDetectSub_ = nh_.subscribe("goal_detect_msg",1, &OuttakeHatchPanelAction::goalDetectCallback, this) //TODO make sure this is linked up correctly
-		/* std::map<std::string, std::string> service_connection_header;
-		   service_connection_header["tcp_nodelay"] = "1";
-		   ElevatorSrv_ = nh_.serviceClient<elevator_controller::ElevatorControlS>("/frcrobot/elevator_controller/cmd_posS", false, service_connection_header);
-		 */
 		as_.start();
 
-		//do networking stuff?
+		//do networking stuff?g
 		std::map<std::string, std::string> service_connection_header;
 		service_connection_header["tcp_nodelay"] = "1";
 
 		//initialize the client being used to call the controller
 		panel_controller_client_ = nh_.serviceClient<panel_intake_controller::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command", false, service_connection_header);
 
+		//initialize subscriber for joint states
+		finish_actionlib_server_ = nh_.advertiseService("finish_actionlib", &OuttakeHatchPanelAction::finishActionlibCB, this); //namespaces makes this name work
+		finish_command_sent_ = false; //set default state
 	}
 
 		~OuttakeHatchPanelAction(void) {}
@@ -84,7 +85,9 @@ class OuttakeHatchPanelAction
 			elev_goal.raise_intake_after_success = true;
 			ac_elevator_.sendGoal(elev_goal);
 
+			//wait to see if elevator server finishes before timeout
 			bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(std::max(elevator_timeout - (ros::Time::now().toSec() - start_time), 0.001)));
+			//determine final state of elevator server
 			if(finished_before_timeout && !ac_elevator_.getResult()->timed_out) {
 				actionlib::SimpleClientGoalState state = ac_elevator_.getState();
 				if(state.toString() != "SUCCEEDED") {
@@ -136,8 +139,29 @@ class OuttakeHatchPanelAction
 				ros::spinOnce(); //update everything
 
 
-				//pause for a bit
-				ros::Duration(pause_time_between_pistons).sleep();
+				//wait until the panel outtake button is released before retracting mech and lowering elevator
+
+				while(ros::ok() && !preempted)
+				{
+					ROS_WARN("At loop!!!!!");
+					//check if B button (panel outtake) was released
+					if(finish_command_sent_)
+					{
+						ROS_ERROR("Boom!");
+						break; //exit loop when button is released
+					}
+					//check if preempted
+					if(as_.isPreemptRequested())
+					{
+						preempted = true;
+					}
+					else
+					{
+						//wait a bit before iterating the loop again
+						r.sleep();
+					}
+				}
+				finish_command_sent_ = false; //we're done processing this, so set it to false
 
 				//retract the panel mechanism; we can reuse the srv variable
 				srv.request.claw_release = true;
@@ -175,12 +199,10 @@ class OuttakeHatchPanelAction
 				timed_out = true;
 			}
 
-			//TODO fix this comp change made end state pulled in, and deployed and isn't with in frame perimeter
 			//set final state of mechanism - pulled in, clamped (to stay within frame perimeter)
-			//it doesn't matter if timed out or preempted, do anyways			
-			//extend panel mechanism
+			//it doesn't matter if timed out or preempted, do anyway
 			panel_intake_controller::PanelIntakeSrv srv;
-			srv.request.claw_release = true;
+			srv.request.claw_release = false;
 			srv.request.push_extend = false;
 			//send request to controller
 			if(!panel_controller_client_.call(srv))
@@ -216,13 +238,15 @@ class OuttakeHatchPanelAction
 			return;
 
 		}
-		/*
-		//TODO: get message type
-		goalDetectCallback(msg type here)
-		{
 
+		bool finishActionlibCB(behaviors::FinishActionlib::Request &req, behaviors::FinishActionlib::Response &/*res*/)
+		{
+			if(req.finish)
+			{
+				finish_command_sent_ = true;
+			}
+			return true;
 		}
-		 */
 };
 
 int main(int argc, char** argv)

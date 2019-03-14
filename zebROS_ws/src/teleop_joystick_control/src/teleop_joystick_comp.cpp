@@ -21,6 +21,8 @@
 #include "actionlib/client/simple_action_client.h"
 #include "behaviors/enumerated_elevator_indices.h"
 
+#include "behaviors/FinishActionlib.h"
+
 #include "std_srvs/SetBool.h"
 #include <vector>
 #include "teleop_joystick_control/RobotOrient.h"
@@ -74,6 +76,7 @@ ros::Publisher enable_align;
 
 ros::ServiceClient BrakeSrv;
 ros::ServiceClient run_align;
+ros::ServiceClient finish_hatch_panel_outtake;
 
 ros::ServiceClient manual_server_panelIn;
 ros::ServiceClient manual_server_cargoOut;
@@ -315,14 +318,14 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		msg.request.data = true;
 		run_align.call(msg);
 		}
+		*/
 		if(joystick_states_array[0].buttonBRelease)
 		{
-		ROS_INFO_STREAM("Joystick1: buttonBRelease");
-		std_srvs::SetBool msg;
-		msg.request.data = false;
-		run_align.call(msg);
+			ROS_INFO_STREAM("Joystick1: buttonBRelease");
+			behaviors::FinishActionlib srv;
+			srv.request.finish = true;
+			finish_hatch_panel_outtake.call(srv);
 		}
-		*/
 
 		//Joystick1: buttonX
 		if(joystick_states_array[0].buttonXPress)
@@ -953,6 +956,7 @@ int main(int argc, char **argv)
 	elevator_ac = std::make_shared<actionlib::SimpleActionClient<behaviors::ElevatorAction>>("/elevator/elevator_server", true);
 
 	run_align = n.serviceClient<std_srvs::SetBool>("/align_with_terabee/run_align");
+	finish_hatch_panel_outtake = n.serviceClient<behaviors::FinishActionlib>("/hatch_outtake/finish_actionlib");
 
 	manual_server_panelIn = n.serviceClient<panel_intake_controller::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command");
 	manual_server_cargoOut = n.serviceClient<cargo_outtake_controller::CargoOuttakeSrv>("/cargo_outtake_controller/cargo_outtake_command");
