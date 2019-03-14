@@ -213,7 +213,7 @@ class CargoOuttakeAction {
 				ROS_ERROR("%s: Srv outtake call failed", action_name_.c_str());
 				preempted = true;
 			}
-			ros::spinOnce();
+			ros::spinOnce(); //update everything 
 
 
 

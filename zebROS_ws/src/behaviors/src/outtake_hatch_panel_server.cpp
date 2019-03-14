@@ -39,8 +39,8 @@ class OuttakeHatchPanelAction
 		/* std::map<std::string, std::string> service_connection_header;
 		   service_connection_header["tcp_nodelay"] = "1";
 		   ElevatorSrv_ = nh_.serviceClient<elevator_controller::ElevatorControlS>("/frcrobot/elevator_controller/cmd_posS", false, service_connection_header);
-		 */
-		as_.start();
+		   */
+		as_.start(); //start actionlib servers
 
 		//do networking stuff?
 		std::map<std::string, std::string> service_connection_header;
@@ -85,8 +85,11 @@ class OuttakeHatchPanelAction
 			ac_elevator_.sendGoal(elev_goal);
 
 			bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(std::max(elevator_timeout - (ros::Time::now().toSec() - start_time), 0.001)));
+			//if finished before timeout then it has either succeeded or failed
 			if(finished_before_timeout && !ac_elevator_.getResult()->timed_out) {
+				//determine final state of elevator server
 				actionlib::SimpleClientGoalState state = ac_elevator_.getState();
+				//test if failed
 				if(state.toString() != "SUCCEEDED") {
 					ROS_ERROR("%s: Elevator Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
 				}
@@ -177,13 +180,13 @@ class OuttakeHatchPanelAction
 
 			//TODO fix this comp change made end state pulled in, and deployed and isn't with in frame perimeter
 			//set final state of mechanism - pulled in, clamped (to stay within frame perimeter)
-			//it doesn't matter if timed out or preempted, do anyways			
+			//it doesn't matter if timed out or preempted, do anyways
 			//extend panel mechanism
 			panel_intake_controller::PanelIntakeSrv srv;
 			srv.request.claw_release = true;
 			srv.request.push_extend = false;
 			//send request to controller
-			if(!panel_controller_client_.call(srv))
+			if(!panel_controller_client_.call(srv)) //call will happen no matter preempt outcome 
 			{
 				ROS_ERROR("Panel controller call failed in panel outtake server, final state of mechanism call.");
 				preempted = true;
@@ -222,7 +225,7 @@ class OuttakeHatchPanelAction
 		{
 
 		}
-		 */
+		*/
 };
 
 int main(int argc, char** argv)

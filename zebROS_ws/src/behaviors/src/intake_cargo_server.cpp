@@ -88,7 +88,7 @@ class CargoIntakeAction {
 			//if both of these are false, we assume the action succeeded
 			bool preempted = false;
 			bool timed_out = false;
-
+			//send elevator to intake position
 			ROS_WARN("cargo intake server: sending elevator to intake setpoint");
 			behaviors::ElevatorGoal elevator_goal;
 			elevator_goal.setpoint_index = INTAKE;

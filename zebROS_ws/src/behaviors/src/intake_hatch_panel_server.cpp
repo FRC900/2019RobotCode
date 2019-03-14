@@ -43,7 +43,7 @@ class IntakeHatchPanelAction
 		   service_connection_header["tcp_nodelay"] = "1";
 		   ElevatorSrv_ = nh_.serviceClient<elevator_controller::ElevatorControlS>("/frcrobot/elevator_controller/cmd_posS", false, service_connection_header);
 		 */
-		as_.start();
+		as_.start(); //start actionlib servers
 
 		//do networking stuff?
 		std::map<std::string, std::string> service_connection_header;
@@ -100,7 +100,7 @@ class IntakeHatchPanelAction
 			ac_elevator_.sendGoal(elev_goal);
 			//determine if elevator server timed out or did not time out
 			bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(elevator_timeout - (ros::Time::now().toSec() - start_time)));
-			//if finished before timeout then it has either succeeded or failed otherwise it timed out 
+			//if finished before timeout then it has either succeeded or failed 
 			if(finished_before_timeout) {
 				//determine final state of elevator server
 				actionlib::SimpleClientGoalState state = ac_elevator_.getState();
