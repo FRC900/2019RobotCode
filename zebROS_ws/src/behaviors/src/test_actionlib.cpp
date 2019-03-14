@@ -7,6 +7,8 @@
 #include <behaviors/enumerated_elevator_indices.h>
 #include <boost/algorithm/string.hpp>
 #include <string>
+#include <behaviors/AlignAction.h>
+#include <behaviors/AlignGoal.h>
 
 double server_wait_timeout = 20.0; //how long to wait for a server to exist before exiting, in sec.
 double server_exec_timeout = 20.0; //how long to wait for an actionlib server call to finish before timing out, in sec. Used for all actionlib calls
@@ -232,6 +234,41 @@ bool callClimber(int step)
 	}
 }
 
+bool callAlign()
+{
+	actionlib::SimpleActionClient<behaviors::AlignAction> align_ac("/align_server/align_server", true);
+
+	ROS_INFO("Waiting for align server to start.");
+	if(!align_ac.waitForServer(ros::Duration(server_wait_timeout)))
+	{
+		ROS_ERROR("Could not find server within %f seconds.", server_wait_timeout);
+	}
+
+	ROS_INFO("Sending goal to align server.");
+	behaviors::AlignGoal align_goal;
+	align_goal.has_cargo = false;
+	align_ac.sendGoal(align_goal);
+
+	//wait for the action to return
+	bool finished_before_timeout = align_ac.waitForResult(ros::Duration(server_exec_timeout));
+
+	if (finished_before_timeout)
+	{
+		actionlib::SimpleClientGoalState state = align_ac.getState();
+		ROS_INFO("Action finished with state: %s",state.toString().c_str());
+		if(align_ac.getResult()->timed_out)
+		{
+			ROS_INFO("Climber server timed out!");
+		}
+		return true;
+	}
+	else
+	{
+		ROS_INFO("Action did not finish before the time out.");
+		return false;
+	}
+}
+
 int main (int argc, char **argv)
 {
 	/*GET DATA FROM USER INPUT
@@ -385,6 +422,9 @@ int main (int argc, char **argv)
 	}
 	else if(what_to_run == "climber3") {
 		callClimber(3);
+	}
+	else if(what_to_run == "align") {
+		callAlign();
 	}
 	else {
 		ROS_ERROR("Invalid run argument");
