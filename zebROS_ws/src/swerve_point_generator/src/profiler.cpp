@@ -1,5 +1,6 @@
 #include <swerve_point_generator/profiler.h>
 #include <ros/console.h>
+#include <ros/ros.h>
 #include <iostream>
 #include <cstdlib>
 #include <algorithm>
@@ -144,8 +145,10 @@ bool swerve_profiler::generate_profile(std::vector<spline_coefs> x_splines,
 	//ROS_INFO_STREAM("total arc: " <<total_arc);
 	//current_spline_position is the arc length we are at in the loop
 	double curr_v = final_v;
+	ros::Rate r(100);
 	for (double current_spline_position = total_arc - curr_v * dt_; current_spline_position > 0; current_spline_position -= curr_v * dt_)
 	{
+		r.sleep();
 		ROS_INFO_STREAM("------------------------");
 
 		velocities.push_back(curr_v); //For limiting the velocity on the back pass
@@ -217,7 +220,7 @@ bool swerve_profiler::generate_profile(std::vector<spline_coefs> x_splines,
 		// rotation. This is a rough model that excludes e.g. acceleration
 		// along the path radius, but that could be added later
 		double linear_accel = (curr_v - prev_v) / dt_;
-		double max_acceleration = -max_wheel_brake_accel_ + fabs(linear_accel);
+		double max_acceleration = -max_wheel_brake_accel_; // + fabs(linear_accel);
 		ROS_INFO_STREAM("requested acceleration = " << requested_acceleration << " max_acceleration = " << max_acceleration << " linear_accel = " << linear_accel);
 
 		//binary search until spline length corresponds to maximum acceleration
@@ -232,6 +235,7 @@ bool swerve_profiler::generate_profile(std::vector<spline_coefs> x_splines,
 			//binary search
 			while(true)
 			{
+				r.sleep();
 				//what angular acceleration do these two spline lengths require?
 				midpoint_spline_position = (max_spline_position + min_spline_position) / 2;
 
@@ -316,6 +320,7 @@ bool swerve_profiler::generate_profile(std::vector<spline_coefs> x_splines,
 	accelerations.clear();
 	for (double current_spline_position = curr_v * dt_; current_spline_position < total_arc; current_spline_position += curr_v * dt_)
 	{
+		r.sleep();
 		ROS_INFO_STREAM("------------------------");
 
 		const double current_spline_t = spline(current_spline_position);
@@ -348,7 +353,7 @@ bool swerve_profiler::generate_profile(std::vector<spline_coefs> x_splines,
 			return false;
 		}
 		//ROS_ERROR_STREAM("2: " << curr_v);
-		for (int k = 0; k < positions.size(); k++)
+		for (size_t k = 0; k < positions.size(); k++)
 		{
 			if (starting_point - k < 0 || positions[starting_point - k] > current_spline_position)
 			{
@@ -448,6 +453,7 @@ bool swerve_profiler::generate_profile(std::vector<spline_coefs> x_splines,
 			//binary search
 			while(true)
 			{
+				r.sleep();
 				//what angular acceleration do these two spline lengths require?
 				midpoint_spline_position = (max_spline_position + min_spline_position)/2;
 

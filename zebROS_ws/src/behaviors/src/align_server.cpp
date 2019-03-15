@@ -322,7 +322,7 @@ class AlignAction {
 					ac_path_.sendGoal(path_location_goal);
 					bool finished_before_timeout = ac_path_.waitForResult(ros::Duration(path_timeout)); //TODO VERY IMPORTANT -- CHANGE TIMEOUTS IN PATH SERVER
 					if(finished_before_timeout) {
-						actionlib::SimpleClientGoalState state = ac_elevator_.getState();
+						actionlib::SimpleClientGoalState state = ac_path_.getState();
 						if(state.toString() != "SUCCEEDED") {
 							ROS_ERROR("%s: Path Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
 							preempted = true;
