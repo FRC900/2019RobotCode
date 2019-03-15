@@ -123,6 +123,7 @@ public:
 
 	void executeCB(const behaviors::PathGoalConstPtr &goal) //make a state thing so that it just progresses to the next service call
 	{
+		ROS_INFO_STREAM("Executing path action callback");
 		bool success = true;
 
 		base_trajectory::GenerateSpline srvBaseTrajectory;
@@ -178,6 +179,7 @@ public:
 
 		while (ros::ok() && !(aborted || success || timed_out))
 		{
+			ROS_INFO_STREAM_THROTTLE(0.25, "Waiting for the pathing loop to finish, outOfPoints = " << outOfPoints);
 			if (as_.isPreemptRequested())
 			{
 				ROS_WARN("%s: Preempted", action_name_.c_str());

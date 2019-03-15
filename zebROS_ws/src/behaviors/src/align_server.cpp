@@ -10,6 +10,7 @@
 #include "actionlib/client/simple_action_client.h"
 #include "behaviors/PathGoal.h"
 #include "behaviors/PathAction.h"
+#include "goal_detection/GoalDetection.h"
 
 double align_timeout;
 double orient_timeout;
@@ -17,9 +18,14 @@ double orient_error_threshold;
 double x_error_threshold;
 double cargo_error_threshold;
 double time_to_path;
+double wait_for_server_timeout;
 
 double elevator_timeout;
 double path_timeout;
+
+bool goals_found;
+
+behaviors::PathGoal path_location_goal;
 
 //bool startup = true; //disable all pid nodes on startup
 class AlignAction {
@@ -45,6 +51,7 @@ class AlignAction {
 		ros::Subscriber cargo_distance_error_sub_;
 		ros::Subscriber y_error_sub_;
 		ros::Subscriber cargo_error_sub_;
+		ros::Subscriber zed_msg_sub_;
 
         ros::ServiceClient BrakeSrv;
 
@@ -68,7 +75,7 @@ class AlignAction {
 			as_(nh_, name, boost::bind(&AlignAction::executeCB, this, _1), false),
 			action_name_(name),
 			ac_elevator_("/elevator/elevator_server", true),
-			ac_path_("/path/path_server", true),
+			ac_path_("/path_to_goal/path_server", true),
 			enable_navx_pub_(enable_navx_pub_),
 			hatch_panel_enable_distance_pub_(hatch_panel_enable_distance_pub_),
 			cargo_enable_distance_pub_(cargo_enable_distance_pub_),
@@ -88,6 +95,7 @@ class AlignAction {
 			cargo_distance_error_sub_ = nh_.subscribe("cargo_distance_pid/pid_debug", 1, &AlignAction::cargo_distance_error_cb, this);
 			cargo_error_sub_ = nh_.subscribe("cargo_pid/pid_debug", 1, &AlignAction::cargo_error_cb, this);
 			y_error_sub_ = nh_.subscribe("align_with_terabee/y_aligned", 1, &AlignAction::y_error_cb, this);
+			zed_msg_sub_ = nh_.subscribe("goal_detect_msg", 1, &AlignAction::zed_msg_cb, this);
 		}
 
 		~AlignAction(void)
@@ -119,10 +127,58 @@ class AlignAction {
 			cargo_aligned_ = (fabs(msg.data[0]) < cargo_error_threshold);
 			//ROS_WARN_STREAM_THROTTLE(1, "cargo error: " << msg.data[0]);
 		}
+		void zed_msg_cb(const goal_detection::GoalDetection &msg)
+		{
+			size_t num_goals = msg.location.size();
+			int index;
+			goals_found = true;
+			if (num_goals == 0)
+			{
+				ROS_INFO_STREAM("No goals found. Skipping");
+				goals_found = false;
+				return;
+			}
+			else if (num_goals > 1)
+			{
+				double min_distance = std::numeric_limits<double>::max();
+				index = -1;
+				for(size_t i = 0; i < num_goals; i++)
+				{
+					if(msg.location[i].x < min_distance)
+					{
+						min_distance = msg.location[i].x;
+						index = i;
+					}
+				}
+				if(index == -1)
+				{
+					ROS_INFO_STREAM("No goals found that are not infinitely far away. Skipping.");
+					return;
+				}
+			}
+			else
+			{
+				index = 0;
+			}
+			path_location_goal.x = msg.location[index].x;
+			path_location_goal.y = msg.location[index].y;
+			path_location_goal.rotation = 0;
+			path_location_goal.time_to_run = time_to_path;
+		}
+
+
 
 		//define the function to be executed when the actionlib server is called
 		void executeCB(const behaviors::AlignGoalConstPtr &goal) {
 			ROS_INFO_STREAM("align server callback called");
+
+			if(!ac_path_.waitForServer(ros::Duration(wait_for_server_timeout)))
+			{
+				ROS_ERROR_STREAM("Align server couldn't find pathing server");
+				as_.setPreempted();
+				return;
+			}
+
 			ros::Rate r(30);
 
             static bool elevator_moved = false;
@@ -260,31 +316,32 @@ class AlignAction {
 				false_msg.data = false;
 				enable_navx_pub_->publish(false_msg);
 
-				behaviors::PathGoal path_goal;
-				//path_goal.x = zed_tape_msg.x;
-				//path_goal.y = zed_tape_msg.y;
-				path_goal.rotation = 0;
-				path_goal.time_to_run = time_to_path;
-
-				ROS_INFO_STREAM("Sending the pathing goal");
-				ac_path_.sendGoal(path_goal);
-
-				bool finished_before_timeout = ac_path_.waitForResult(ros::Duration(elevator_timeout - (ros::Time::now().toSec() - path_timeout))); //TODO VERY IMPORTANT -- CHANGE TIMEOUTS IN PATH SERVER
-				if(finished_before_timeout) {
-					actionlib::SimpleClientGoalState state = ac_elevator_.getState();
-					if(state.toString() != "SUCCEEDED") {
-						ROS_ERROR("%s: Path Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
-						preempted = true;
+				if(goals_found)
+				{
+					ROS_INFO_STREAM("Sending the pathing goal");
+					ac_path_.sendGoal(path_location_goal);
+					bool finished_before_timeout = ac_path_.waitForResult(ros::Duration(path_timeout)); //TODO VERY IMPORTANT -- CHANGE TIMEOUTS IN PATH SERVER
+					if(finished_before_timeout) {
+						actionlib::SimpleClientGoalState state = ac_elevator_.getState();
+						if(state.toString() != "SUCCEEDED") {
+							ROS_ERROR("%s: Path Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
+							preempted = true;
+						}
+						else {
+							ROS_WARN("%s: Path Server ACTION SUCCEEDED",action_name_.c_str());
+							success = true;
+						}
 					}
 					else {
-						ROS_WARN("%s: Path Server ACTION SUCCEEDED",action_name_.c_str());
-						success = true;
+						ROS_ERROR("%s: Path Server ACTION TIMED OUT",action_name_.c_str());
+						timed_out = true;
 					}
 				}
-				else {
-					ROS_ERROR("%s: Path Server ACTION TIMED OUT",action_name_.c_str());
-					timed_out = true;
+				else
+				{
+					ROS_INFO_STREAM("Not sending the pathing goal because nothing was detected");
 				}
+
 			}
 
 			if(timed_out)
@@ -332,6 +389,8 @@ int main(int argc, char** argv) {
 	ros::NodeHandle n_params(n, "align_server_params");
     ros::NodeHandle n_panel_params(n, "actionlib_hatch_panel_intake_params");
 
+	if (!n.getParam("/actionlib_params/wait_for_server_timeout", wait_for_server_timeout))
+		ROS_ERROR_STREAM("Could not read wait_for_server_timeout in align_sever");
 	if(!n_params.getParam("align_timeout", align_timeout))
 		ROS_ERROR_STREAM("Could not read align_timeout in align_server");
 	if(!n_params.getParam("orient_timeout", orient_timeout))

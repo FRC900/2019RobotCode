@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   ros_control_boilerplate
   talon_swerve_drive_controller
   swerve_point_generator
+  goal_detection
 )
 
 include_directories(
