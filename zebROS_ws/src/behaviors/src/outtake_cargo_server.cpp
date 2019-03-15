@@ -252,7 +252,7 @@ class CargoOuttakeAction {
 			{
 				for (size_t i = 0; i < joint_state.name.size(); i++)
 				{
-					if (joint_state.name[i] == "cargo_intake_linebreak_1") //TODO: define this in the hardware interface
+					if (joint_state.name[i] == "cargo_intake_linebreak_1")
 						linebreak_idx = i;
 				}
 			}

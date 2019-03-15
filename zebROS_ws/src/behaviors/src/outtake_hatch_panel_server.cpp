@@ -217,15 +217,7 @@ class OuttakeHatchPanelAction
 				as_.setSucceeded(result_);
 			}
 			return;
-
 		}
-		/*
-		//TODO: get message type
-		goalDetectCallback(msg type here)
-		{
-
-		}
-		*/
 };
 
 int main(int argc, char** argv)

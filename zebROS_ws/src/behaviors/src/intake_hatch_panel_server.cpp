@@ -42,7 +42,7 @@ class IntakeHatchPanelAction
 		/* std::map<std::string, std::string> service_connection_header;
 		   service_connection_header["tcp_nodelay"] = "1";
 		   ElevatorSrv_ = nh_.serviceClient<elevator_controller::ElevatorControlS>("/frcrobot/elevator_controller/cmd_posS", false, service_connection_header);
-		 */
+		*/
 		as_.start(); //start actionlib servers
 
 		//do networking stuff?
@@ -237,15 +237,7 @@ class IntakeHatchPanelAction
 				as_.setSucceeded(result_);
 			}
 			return;
-
 		}
-		/*
-		//TODO: get message type
-		goalDetectCallback(msg type here)
-		{
-
-		}
-		 */
 };
 
 
