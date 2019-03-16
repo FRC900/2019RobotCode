@@ -12,12 +12,8 @@
 
 //define global variables that will be defined based on config values
 
-// TODO - these need defaults
-double roller_power;
-double intake_timeout;
-int linebreak_debounce_iterations;
-double wait_for_server_timeout;
-double pause_before_running_motor = 0;
+double wait_for_server_timeout = 5;
+double pause_before_running_motor = 0.2;
 
 class CargoIntakeAction {
 	protected:

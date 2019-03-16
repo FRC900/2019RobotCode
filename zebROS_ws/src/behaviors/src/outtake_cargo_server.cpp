@@ -16,11 +16,11 @@
 
 //define global variables that will be defined based on config values
 
-double outtake_timeout; //timeout for the elevator call
-double linebreak_debounce_iterations;
-double pause_time_between_pistons;
-double wait_for_server_timeout;
-double pause_before_elevator_lower; //after the outtake
+double outtake_timeout = 3; //timeout for the elevator call
+double linebreak_debounce_iterations =1;
+double pause_time_between_pistons = 1;
+double wait_for_server_timeout = 5;
+double pause_before_elevator_lower =0.2; //after the outtake
 bool linebreak_true_count = 0;
 bool linebreak_false_count = 0;
 
