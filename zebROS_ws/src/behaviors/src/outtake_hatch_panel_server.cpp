@@ -62,7 +62,7 @@ class OuttakeHatchPanelAction
 
 			if(!elevator_server_found)
 			{
-				ROS_ERROR_STREAM("The elevator server was not loaded before the panel intake server needed it");
+				ROS_ERROR_STREAM("The elevator server was not loaded before the panel outtake server needed it");
 				as_.setPreempted();
 				return;
 			}
