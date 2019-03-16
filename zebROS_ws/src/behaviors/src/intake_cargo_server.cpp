@@ -14,6 +14,9 @@
 
 double wait_for_server_timeout = 5;
 double pause_before_running_motor = 0.2;
+double roller_power = 1;
+double intake_timeout = 5;
+double linebreak_debounce_iterations = 1;
 
 class CargoIntakeAction {
 	protected:

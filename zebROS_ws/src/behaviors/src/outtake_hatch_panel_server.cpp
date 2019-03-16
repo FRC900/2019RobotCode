@@ -35,7 +35,7 @@ class OuttakeHatchPanelAction
 			action_name_(name),
 			ac_elevator_("/elevator/elevator_server", true)
 	{
-		//GoalDetectSub_ = nh_.subscribe("goal_detect_msg",1, &OuttakeHatchPanelAction::goalDetectCallback, this) //TODO make sure this is linked up correctly
+	
 		/* std::map<std::string, std::string> service_connection_header;
 		   service_connection_header["tcp_nodelay"] = "1";
 		   ElevatorSrv_ = nh_.serviceClient<elevator_controller::ElevatorControlS>("/frcrobot/elevator_controller/cmd_posS", false, service_connection_header);
