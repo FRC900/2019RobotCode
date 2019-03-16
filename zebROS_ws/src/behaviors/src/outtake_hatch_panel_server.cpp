@@ -139,7 +139,30 @@ class OuttakeHatchPanelAction
 				ros::spinOnce(); //update everything
 
 
-				//wait until the panel outtake button is released before retracting mech and lowering elevator
+				///wait until the panel outtake button is released before retracting mech and lowering elevator
+
+				while(ros::ok() && !preempted)
+				{
+					ROS_WARN("At loop!!!!!");
+					//check if B button (panel outtake) was released
+					if(finish_command_sent_)
+					{
+						ROS_ERROR("Boom!");
+						break; //exit loop when button is released
+					}
+					//check if preempted
+					if(as_.isPreemptRequested())
+					{
+						preempted = true;
+					}
+					else
+					{
+						//wait a bit before iterating the loop again
+						r.sleep();
+					}
+				}
+				finish_command_sent_ = false; //we're done processing this, so set it to false
+/wait until the panel outtake button is released before retracting mech and lowering elevator
 
 				while(ros::ok() && !preempted)
 				{

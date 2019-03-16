@@ -8,6 +8,7 @@
 #include <behaviors/IntakeAction.h>
 #include <behaviors/ElevatorAction.h>
 #include "behaviors/enumerated_elevator_indices.h"
+#include <behaviors/FinishActionlib.h>
 
 //define global variables that will be set based on config values
 double elevator_timeout;
@@ -31,6 +32,9 @@ class IntakeHatchPanelAction
 		//Service client for hatch panel mech
 		ros::ServiceClient panel_controller_client_;
 
+		ros::ServiceServer finish_actionlib_server_;
+		bool finish_command_sent_; //stores true when callback to finish_actionlib_server_ runs, to false when the command has been processed by executeCB
+
 	public:
 		IntakeHatchPanelAction(const std::string &name) :
 			as_(nh_, name, boost::bind(&IntakeHatchPanelAction::executeCB, this, _1), false),
@@ -45,6 +49,10 @@ class IntakeHatchPanelAction
 
 		//initialize the client being used to call the controller
 		panel_controller_client_ = nh_.serviceClient<panel_intake_controller::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command", false, service_connection_header);
+
+		//initialize the server that will accept a command to finish the actionlib server (upon button release)
+		finish_actionlib_server_ = nh_.advertiseService("finish_actionlib", &IntakeHatchPanelAction::finishActionlibCB, this); //namespaces mean that the name doesn't have to be as specific
+		finish_command_sent_ false; //set default
 	}
 
 		~IntakeHatchPanelAction(void) {}
@@ -223,6 +231,14 @@ class IntakeHatchPanelAction
 
 		}
 		 */
+		bool finishActionlibCB(behaviors::FinishActionlib::Request &req, behaviors::FinishActionlib::Response &/*res*/)
+		{
+			if(req.finish)
+			{
+				finish_command_sent_ = true;
+			}
+			return true;
+		}
 };
 
 
