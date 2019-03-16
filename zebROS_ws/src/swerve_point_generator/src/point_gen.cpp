@@ -286,7 +286,6 @@ bool full_gen(swerve_point_generator::FullGenCoefs::Request &req, swerve_point_g
 				}
 
 				res.points[i + n + prev_point_count].steer_pos.push_back(angles_positions[k][1]);
-				ROS_INFO_STREAM("angle at wheel " << k << " = " << angles_positions[k][1]);
 
 				prev_steer_pos[k] = angles_positions[k][1];
 
@@ -408,7 +407,7 @@ int main(int argc, char **argv)
 		double dbl_val = 0;
 		if (!nh.getParam("offset", dbl_val))
 			ROS_ERROR_STREAM("Can not read offset for " << *it);
-		offsets.push_back(dbl_val);
+		offsets.push_back(dbl_val - M_PI/2);
 	}
 
 	swerve_math = std::make_shared<swerve>(wheel_coords, offsets, drive_ratios, units, model);
