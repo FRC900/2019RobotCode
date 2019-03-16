@@ -9,9 +9,9 @@
 #include <behaviors/ElevatorAction.h>
 
 //define global variables that will be defined based on config values
-double elevator_timeout;
-double pause_time_between_pistons;
-double wait_for_server_timeout;
+double elevator_timeout = 3;
+double pause_time_between_pistons = 1;
+double wait_for_server_timeout = 5;
 
 class OuttakeHatchPanelAction
 {
