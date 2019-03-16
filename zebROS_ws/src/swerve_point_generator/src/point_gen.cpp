@@ -128,6 +128,7 @@ bool full_gen(swerve_point_generator::FullGenCoefs::Request &req, swerve_point_g
 		ROS_INFO_STREAM("req.initial_v: " << req.initial_v << " req.final_v: " << req.final_v << " t_shift: " << t_shift);
 		profile_gen->generate_profile(x_splines, y_splines, orient_splines, req.initial_v, req.final_v, srv_msg, end_points_holder, t_shift, flip_dirc);
 		const int point_count = srv_msg.points.size();
+		ROS_INFO_STREAM(srv_msg.points[point_count - 1].positions[0] << " " << srv_msg.points[point_count - 1].positions[1]);
 		//ROS_WARN("TEST2");
 
 		graph_msg.request.joint_trajectory.header = srv_msg.header;
@@ -285,6 +286,7 @@ bool full_gen(swerve_point_generator::FullGenCoefs::Request &req, swerve_point_g
 				}
 
 				res.points[i + n + prev_point_count].steer_pos.push_back(angles_positions[k][1]);
+				ROS_INFO_STREAM("angle at wheel " << k << " = " << angles_positions[k][1]);
 
 				prev_steer_pos[k] = angles_positions[k][1];
 
@@ -301,9 +303,10 @@ bool full_gen(swerve_point_generator::FullGenCoefs::Request &req, swerve_point_g
 
 	res.joint_trajectory = graph_msg.request.joint_trajectory;
 
-	//talon_swerve_drive_controller::MotionProfilePoints graph_swerve_msg;
-	//graph_swerve_msg.request.points = res.points;
-	//graph_swerve_prof.call(graph_swerve_msg);
+	talon_swerve_drive_controller::MotionProfilePoints graph_swerve_msg;
+	graph_swerve_msg.request.profiles.resize(1);
+	graph_swerve_msg.request.profiles[0].points = res.points;
+	graph_swerve_prof.call(graph_swerve_msg);
 	//ROS_WARN("FIN");
 	return true;
 }
@@ -311,8 +314,7 @@ int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "point_gen");
 	ros::NodeHandle nh;
-
-	ros::NodeHandle controller_nh(nh, "swerve_drive_controller");
+	ros::NodeHandle controller_nh(nh, "/frcrobot_jetson/swerve_drive_controller");
 
 	//double wheel_radius;
 	swerveVar::ratios drive_ratios;
@@ -416,8 +418,8 @@ int main(int argc, char **argv)
 
 	std::map<std::string, std::string> service_connection_header;
 	service_connection_header["tcp_nodelay"] = "1";
-	graph_prof = nh.serviceClient<talon_swerve_drive_controller::MotionProfile>("visualize_profile", false, service_connection_header);
-	graph_swerve_prof = nh.serviceClient<talon_swerve_drive_controller::MotionProfilePoints>("visualize_swerve_profile", false, service_connection_header);
+	graph_prof = nh.serviceClient<talon_swerve_drive_controller::MotionProfile>("/visualize_profile", false, service_connection_header);
+	graph_swerve_prof = nh.serviceClient<talon_swerve_drive_controller::MotionProfilePoints>("/visualize_swerve_profile", false, service_connection_header);
 
 	ros::service::waitForService("/frcrobot_jetson/swerve_drive_controller/wheel_pos");
 	ROS_ERROR("DONE WAITING FOR wheel_pos");

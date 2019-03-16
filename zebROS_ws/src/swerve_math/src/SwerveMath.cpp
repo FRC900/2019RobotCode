@@ -44,6 +44,7 @@ array<Eigen::Vector2d, WHEELCOUNT> swerveDriveMath::wheelSpeedsAngles(const arra
 	//Rotate the target velocity by the robots angle to make it field centric
 	const Eigen::Rotation2Dd r(M_PI / 2 - angle);
 	const Eigen::Vector2d rotatedVelocity = r.toRotationMatrix() * velocityVector;
+	ROS_INFO_STREAM("in swerve math vel = " << velocityVector[0] << " " << velocityVector[1] << " rot = " << rotation);
 
 	//Should this instead be a function in 900Math of the form: rotate(vector, angle) rather than 2 lines of eigen stuff?
 	array<double, WHEELCOUNT> speeds;

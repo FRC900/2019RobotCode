@@ -11,6 +11,7 @@
 #include "behaviors/PathGoal.h"
 #include "behaviors/PathAction.h"
 #include "goal_detection/GoalDetection.h"
+#include "tf2_ros/transform_listener.h"
 
 double align_timeout;
 double orient_timeout;

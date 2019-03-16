@@ -43,7 +43,7 @@ def create_plot(req):
 	
 	count  = 0
 
-	for i in req.points:
+	for i in req.profiles[0].points:
 		#print("running")
 		flp.append(i.drive_pos[0])
 		frp.append(i.drive_pos[1])
