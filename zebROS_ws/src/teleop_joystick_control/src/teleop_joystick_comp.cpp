@@ -77,6 +77,7 @@ ros::Publisher enable_align;
 ros::ServiceClient BrakeSrv;
 ros::ServiceClient run_align;
 ros::ServiceClient finish_hatch_panel_outtake;
+ros::ServiceClient finish_hatch_panel_intake;
 
 ros::ServiceClient manual_server_panelIn;
 ros::ServiceClient manual_server_cargoOut;
@@ -382,13 +383,11 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		  }
 		  if(joystick_states_array[0].buttonYRelease)
 		  {
-			  /*
-			  ROS_INFO_STREAM("Joystick1: buttonYRelease");
-			  std_msgs::Bool enable_pid;
-			  enable_pid.data = false;
-			  navX_pid.publish(enable_pid);
-			  enable_align.publish(enable_pid);
-			  */
+			ROS_INFO_STREAM("Joystick1: buttonYRelease");
+			behaviors::FinishActionlib srv;
+			srv.request.finish = true;
+			finish_hatch_panel_intake.call(srv);
+
 		  }
 
 		//Joystick1: bumperLeft
@@ -957,6 +956,7 @@ int main(int argc, char **argv)
 
 	run_align = n.serviceClient<std_srvs::SetBool>("/align_with_terabee/run_align");
 	finish_hatch_panel_outtake = n.serviceClient<behaviors::FinishActionlib>("/hatch_outtake/finish_actionlib");
+	finish_hatch_panel_intake = n.serviceClient<behaviors::FinishActionlib>("/hatch_intake/finish_actionlib");
 
 	manual_server_panelIn = n.serviceClient<panel_intake_controller::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command");
 	manual_server_cargoOut = n.serviceClient<cargo_outtake_controller::CargoOuttakeSrv>("/cargo_outtake_controller/cargo_outtake_command");

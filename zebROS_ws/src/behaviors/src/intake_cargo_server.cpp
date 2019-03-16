@@ -12,8 +12,11 @@
 
 //define global variables that will be defined based on config values
 
+double intake_timeout;
 double wait_for_server_timeout = 5;
 double pause_before_running_motor = 0.2;
+double roller_power;
+int linebreak_debounce_iterations;
 
 class CargoIntakeAction {
 	protected:

@@ -49,7 +49,6 @@ class OuttakeHatchPanelAction
 
 		//initialize subscriber for joint states
 		finish_actionlib_server_ = nh_.advertiseService("finish_actionlib", &OuttakeHatchPanelAction::finishActionlibCB, this); //namespaces makes this name work
-		finish_command_sent_ = false; //set default state
 	}
 
 		~OuttakeHatchPanelAction(void) {}
@@ -78,7 +77,9 @@ class OuttakeHatchPanelAction
 			bool preempted = false;
 			bool timed_out = false;
 
-			//move elevator to outtake location
+			finish_command_sent_ = false; //make sure this is what we think it should be
+
+			/*/move elevator to outtake location
 			behaviors::ElevatorGoal elev_goal;
 			elev_goal.setpoint_index = goal->setpoint_index;
 			elev_goal.place_cargo = false;
@@ -109,7 +110,7 @@ class OuttakeHatchPanelAction
 			if(as_.isPreemptRequested())
 			{
 				preempted = true;
-			}
+			}*/
 
 			//send commands to panel_intake_controller to grab the panel ---------------------------------------
 			if(!preempted && ros::ok())
@@ -127,23 +128,7 @@ class OuttakeHatchPanelAction
 				ros::spinOnce(); //update everything
 
 
-				//pause for a bit
-				ros::Duration(pause_time_between_pistons).sleep();
-
-				//release the panel - we can reuse the srv variable
-				srv.request.claw_release = true;
-				srv.request.push_extend = true;
-				//send request to controller
-				if(!panel_controller_client_.call(srv)) //note: the call won't happen if preempted was true, because of how && operator works
-				{
-					ROS_ERROR("Panel controller call failed in panel outtake server");
-					preempted = true;
-				}
-				ros::spinOnce(); //update everything
-
-
-				///wait until the panel outtake button is released before retracting mech and lowering elevator
-
+				//wait until the panel outtake button is released before retracting mech and lowering elevator
 				while(ros::ok() && !preempted)
 				{
 					ROS_WARN("At loop!!!!!");
@@ -166,8 +151,22 @@ class OuttakeHatchPanelAction
 				}
 				finish_command_sent_ = false; //we're done processing this, so set it to false
 
-				//retract the panel mechanism; we can reuse the srv variable
+
+
+				//release the panel - we can reuse the srv variable
 				srv.request.claw_release = true;
+				srv.request.push_extend = true;
+				//send request to controller
+				if(!panel_controller_client_.call(srv)) //note: the call won't happen if preempted was true, because of how && operator works
+				{
+					ROS_ERROR("Panel controller call failed in panel outtake server");
+					preempted = true;
+				}
+				ros::spinOnce(); //update everything
+
+
+				//retract the panel mechanism and clamp
+				srv.request.claw_release = true; //we can reuse the srv variable
 				srv.request.push_extend = false;
 				//send request to controller
 				if(!panel_controller_client_.call(srv)) //note: the call won't happen if preempted was true, because of how && operator works
@@ -181,7 +180,7 @@ class OuttakeHatchPanelAction
 
 			ros::Duration(1).sleep();
 
-			//lower elevator
+			/*/lower elevator
 			elev_goal.setpoint_index = goal->end_setpoint_index;
 			elev_goal.place_cargo = false;
 			ac_elevator_.sendGoal(elev_goal);
@@ -200,7 +199,7 @@ class OuttakeHatchPanelAction
 			else {
 				ROS_ERROR("%s: Elevator Server ACTION TIMED OUT",action_name_.c_str());
 				timed_out = true;
-			}
+			}*/
 
 			//set final state of mechanism - pulled in, clamped (to stay within frame perimeter)
 			//it doesn't matter if timed out or preempted, do anyways

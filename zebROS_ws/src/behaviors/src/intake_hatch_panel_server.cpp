@@ -51,7 +51,6 @@ class IntakeHatchPanelAction
 
 		//initialize the server that will accept a command to finish the actionlib server (upon button release)
 		finish_actionlib_server_ = nh_.advertiseService("finish_actionlib", &IntakeHatchPanelAction::finishActionlibCB, this); //namespaces mean that the name doesn't have to be as specific
-		finish_command_sent_ false; //set default
 	}
 
 		~IntakeHatchPanelAction(void) {}
@@ -81,6 +80,8 @@ class IntakeHatchPanelAction
 			bool preempted = false;
 			bool timed_out = false;
 
+			finish_command_sent_ = false; //make sure this is what we think it should be
+
 			//release claw
 			panel_intake_controller::PanelIntakeSrv srv;
 			srv.request.claw_release = true;
@@ -94,7 +95,7 @@ class IntakeHatchPanelAction
 			ros::spinOnce(); //update everything
 
 
-			//move elevator to intake location
+			/*/move elevator to intake location
 			behaviors::ElevatorGoal elev_goal;
 			elev_goal.setpoint_index = INTAKE;
 			elev_goal.place_cargo = false;
@@ -117,13 +118,14 @@ class IntakeHatchPanelAction
 			}
 			else {
 				ROS_ERROR("%s: Elevator Server ACTION TIMED OUT",action_name_.c_str());
+				timed_out = true;
 			}
 
 			//test if we got a preempt while waiting
 			if(as_.isPreemptRequested())
 			{
 				preempted = true;
-			}
+			}*/
 
 			//send commands to panel_intake_controller to grab the panel ---------------------------------------
 			if(!preempted && ros::ok())
@@ -139,8 +141,28 @@ class IntakeHatchPanelAction
 				}
 				ros::spinOnce(); //update everything
 
-				//pause for a bit
-				ros::Duration(pause_time_after_extend).sleep();
+				//wait until the panel intake button is released before retracting mech and lowering elevator
+				while(ros::ok() && !preempted)
+				{
+					ROS_WARN("At loop!!!!!");
+					//check if B button (panel outtake) was released
+					if(finish_command_sent_)
+					{
+						ROS_ERROR("Boom!");
+						break; //exit loop when button is released
+					}
+					//check if preempted
+					if(as_.isPreemptRequested())
+					{
+						preempted = true;
+					}
+					else
+					{
+						//wait a bit before iterating the loop again
+						r.sleep();
+					}
+				}
+				finish_command_sent_ = false; //we're done processing this, so set it to false
 
 				//grab the panel - we can reuse the srv variable
 				srv.request.claw_release = false;
