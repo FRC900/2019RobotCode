@@ -11,9 +11,9 @@
 #include <behaviors/FinishActionlib.h> //teleop joystick comp calls this to say finish the action after it's paused
 
 //define global variables that will be defined based on config values
-double elevator_timeout;
-double pause_time_between_pistons;
-double wait_for_server_timeout;
+double elevator_timeout = 3;
+double pause_time_between_pistons = 1;
+double wait_for_server_timeout = 5;
 
 class OuttakeHatchPanelAction
 {
@@ -88,8 +88,11 @@ class OuttakeHatchPanelAction
 			//wait to see if elevator server finishes before timeout
 			bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(std::max(elevator_timeout - (ros::Time::now().toSec() - start_time), 0.001)));
 			//determine final state of elevator server
+			//if finished before timeout then it has either succeeded or failed, not timed out
 			if(finished_before_timeout && !ac_elevator_.getResult()->timed_out) {
+				//determine final state of elevator server
 				actionlib::SimpleClientGoalState state = ac_elevator_.getState();
+				//test if failed
 				if(state.toString() != "SUCCEEDED") {
 					ROS_ERROR("%s: Elevator Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
 				}
@@ -162,29 +165,6 @@ class OuttakeHatchPanelAction
 					}
 				}
 				finish_command_sent_ = false; //we're done processing this, so set it to false
-/wait until the panel outtake button is released before retracting mech and lowering elevator
-
-				while(ros::ok() && !preempted)
-				{
-					ROS_WARN("At loop!!!!!");
-					//check if B button (panel outtake) was released
-					if(finish_command_sent_)
-					{
-						ROS_ERROR("Boom!");
-						break; //exit loop when button is released
-					}
-					//check if preempted
-					if(as_.isPreemptRequested())
-					{
-						preempted = true;
-					}
-					else
-					{
-						//wait a bit before iterating the loop again
-						r.sleep();
-					}
-				}
-				finish_command_sent_ = false; //we're done processing this, so set it to false
 
 				//retract the panel mechanism; we can reuse the srv variable
 				srv.request.claw_release = true;
@@ -223,12 +203,13 @@ class OuttakeHatchPanelAction
 			}
 
 			//set final state of mechanism - pulled in, clamped (to stay within frame perimeter)
-			//it doesn't matter if timed out or preempted, do anyway
+			//it doesn't matter if timed out or preempted, do anyways
+			//extend panel mechanism
 			panel_intake_controller::PanelIntakeSrv srv;
 			srv.request.claw_release = false;
 			srv.request.push_extend = false;
 			//send request to controller
-			if(!panel_controller_client_.call(srv))
+			if(!panel_controller_client_.call(srv)) //call will happen no matter preempt outcome 
 			{
 				ROS_ERROR("Panel controller call failed in panel outtake server, final state of mechanism call.");
 				preempted = true;

@@ -10,12 +10,11 @@
 #include "behaviors/enumerated_elevator_indices.h"
 #include <behaviors/FinishActionlib.h>
 
-//define global variables that will be set based on config values
-double elevator_timeout;
-double pause_time_after_release;
-double pause_time_after_extend;
-double pause_time_after_clamp;
-double wait_for_server_timeout;
+//define global variables that will be defined based on config values
+double elevator_timeout = 2;
+double pause_time_after_extend = 0.25;
+double pause_time_after_clamp = 1;
+double wait_for_server_timeout = 5;
 
 class IntakeHatchPanelAction
 {
@@ -101,12 +100,16 @@ class IntakeHatchPanelAction
 			elev_goal.place_cargo = false;
 			elev_goal.raise_intake_after_success = true;
 			ac_elevator_.sendGoal(elev_goal);
-
+			//determine if elevator server timed out or did not time out
 			bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(elevator_timeout - (ros::Time::now().toSec() - start_time)));
+			//if finished before timeout then it has either succeeded or failed 
 			if(finished_before_timeout) {
+				//determine final state of elevator server
 				actionlib::SimpleClientGoalState state = ac_elevator_.getState();
+				//test if failed
 				if(state.toString() != "SUCCEEDED") {
 					ROS_ERROR("%s: Elevator Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
+					preempted = true;
 				}
 				else {
 					ROS_WARN("%s: Elevator Server ACTION SUCCEEDED",action_name_.c_str());
@@ -125,7 +128,7 @@ class IntakeHatchPanelAction
 			//send commands to panel_intake_controller to grab the panel ---------------------------------------
 			if(!preempted && ros::ok())
 			{
-				//release claw (NOOT NOOT)
+				//release claw (NOOT NOOT) and extend panel mechanism
 				srv.request.claw_release = true;
 				srv.request.push_extend = true;
 				//send request to controller
@@ -134,10 +137,9 @@ class IntakeHatchPanelAction
 					ROS_ERROR("Panel controller call failed in panel intake server");
 					preempted = true;
 				}
+				ros::spinOnce(); //update everything
 
 				//pause for a bit
-				ros::Duration(pause_time_after_release).sleep();
-
 				ros::Duration(pause_time_after_extend).sleep();
 
 				//grab the panel - we can reuse the srv variable
@@ -151,40 +153,6 @@ class IntakeHatchPanelAction
 				}
 				ros::spinOnce(); //update everything
 
-
-                /*
-				//pause for a bit
-				ros::Duration(pause_time_after_clamp).sleep();
-				//
-				//move elevator up a bit after
-				behaviors::ElevatorGoal elev_goal;
-				elev_goal.setpoint_index = CARGO_SHIP; //TODO fix this add to enum in include file
-				elev_goal.place_cargo = false;
-				elev_goal.raise_intake_after_success = true;
-				ac_elevator_.sendGoal(elev_goal);
-
-
-				finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(elevator_timeout - (ros::Time::now().toSec() - start_time)));
-				if(finished_before_timeout) {
-					actionlib::SimpleClientGoalState state = ac_elevator_.getState();
-					if(state.toString() != "SUCCEEDED") {
-						ROS_ERROR("%s: Elevator Server ACTION FAILED: %s",action_name_.c_str(), state.toString().c_str());
-						preempted = true;
-					}
-					else {
-						ROS_WARN("%s: Elevator Server ACTION SUCCEEDED",action_name_.c_str());
-					}
-				}
-				else {
-					ROS_ERROR("%s: Elevator Server ACTION TIMED OUT",action_name_.c_str());
-					timed_out = true;
-				}
-
-				//test if we got a preempt while waiting
-				if(as_.isPreemptRequested())
-				{
-					preempted = true;
-				}*/
 
 			}
 
@@ -222,15 +190,7 @@ class IntakeHatchPanelAction
 				as_.setSucceeded(result_);
 			}
 			return;
-
 		}
-		/*
-		//TODO: get message type
-		goalDetectCallback(msg type here)
-		{
-
-		}
-		 */
 		bool finishActionlibCB(behaviors::FinishActionlib::Request &req, behaviors::FinishActionlib::Response &/*res*/)
 		{
 			if(req.finish)
@@ -257,11 +217,7 @@ int main(int argc, char** argv)
 		ROS_ERROR("Could not read wait_for_server_timeout in panel_intake_server");
 	if (!n_panel_params.getParam("elevator_timeout", elevator_timeout))
 		ROS_ERROR("Could not read elevator_timeout in panel_intake_server");
-	if (!n_panel_params.getParam("pause_time_after_release", pause_time_after_release))
-		ROS_ERROR("Could not read pause_time_after_release in panel_intake_server");
-	if (!n_panel_params.getParam("pause_time_after_extend", pause_time_after_extend))
-		ROS_ERROR("Could not read pause_time_after_extend in panel_intake_server");
-	if (!n_panel_params.getParam("pause_time_after_clamp", pause_time_after_clamp))
+		if (!n_panel_params.getParam("pause_time_after_clamp", pause_time_after_clamp))
 		ROS_ERROR("Could not read pause_time_after_clamp in panel_intake_server");
 
 	ros::spin();

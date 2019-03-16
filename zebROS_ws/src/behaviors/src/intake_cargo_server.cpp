@@ -12,12 +12,8 @@
 
 //define global variables that will be defined based on config values
 
-// TODO - these need defaults
-double roller_power;
-double intake_timeout;
-int linebreak_debounce_iterations;
-double wait_for_server_timeout;
-double pause_before_running_motor = 0;
+double wait_for_server_timeout = 5;
+double pause_before_running_motor = 0.2;
 
 class CargoIntakeAction {
 	protected:
@@ -88,7 +84,7 @@ class CargoIntakeAction {
 			//if both of these are false, we assume the action succeeded
 			bool preempted = false;
 			bool timed_out = false;
-
+			//send elevator to intake position
 			ROS_WARN("cargo intake server: sending elevator to intake setpoint");
 			behaviors::ElevatorGoal elevator_goal;
 			elevator_goal.setpoint_index = INTAKE;
@@ -232,7 +228,7 @@ class CargoIntakeAction {
 			{
 				for (size_t i = 0; i < joint_state.name.size(); i++)
 				{
-					if (joint_state.name[i] == "cargo_intake_linebreak_1") //TODO: define this in the hardware interface
+					if (joint_state.name[i] == "cargo_intake_linebreak_1")
 						linebreak_idx = i;
 				}
 			}
