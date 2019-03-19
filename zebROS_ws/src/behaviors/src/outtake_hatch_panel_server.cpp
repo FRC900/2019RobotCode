@@ -1,6 +1,3 @@
-#ifndef PANEL_OUTTAKE_SERVER
-#define PANEL_OUTTAKE_SERVER
-
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
@@ -22,8 +19,6 @@ class OuttakeHatchPanelAction
 		actionlib::SimpleActionServer<behaviors::PlaceAction> as_;
 		std::string action_name_;
 
-		behaviors::PlaceFeedback feedback_;
-		behaviors::PlaceResult result_;
 
 		actionlib::SimpleActionClient<behaviors::ElevatorAction> ac_elevator_;
 
@@ -215,29 +210,26 @@ class OuttakeHatchPanelAction
 			}
 			ros::spinOnce(); //update everything
 
-
-
 			//log state of action and set result of action
-			result_.timed_out = timed_out;
+			behaviors::PlaceResult result;
+			result.timed_out = timed_out;
 
 			if(timed_out)
 			{
 				ROS_WARN("%s: Timed Out", action_name_.c_str());
-				result_.success = false;
-				as_.setSucceeded(result_);
+				result.success = false;
 			}
 			else if(preempted)
 			{
 				ROS_WARN("%s: Preempted", action_name_.c_str());
-				result_.success = false;
-				as_.setPreempted(result_);
+				result.success = false;
 			}
 			else //implies succeeded
 			{
 				ROS_WARN("%s: Succeeded", action_name_.c_str());
-				result_.success = true;
-				as_.setSucceeded(result_);
+				result.success = true;
 			}
+			as_.setSucceeded(result);
 			return;
 
 		}
@@ -274,5 +266,3 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-
-#endif
