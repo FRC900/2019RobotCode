@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-	<param name="use_sim_time" value="true" />
-
 	<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_zed" args="-0.2914015 -0.072263 0.0244348 0 0 0 base_link zed_camera_center" />
 
 	<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_panel_outtake" args="1 1 1 0 0 0 base_link panel_outtake" />

@@ -111,7 +111,7 @@ class AlignAction {
 			cargo_distance_error_sub_ = nh_.subscribe("cargo_distance_pid/pid_debug", 1, &AlignAction::cargo_distance_error_cb, this);
 			cargo_error_sub_ = nh_.subscribe("cargo_pid/pid_debug", 1, &AlignAction::cargo_error_cb, this);
 			y_error_sub_ = nh_.subscribe("align_with_terabee/y_aligned", 1, &AlignAction::y_error_cb, this);
-			zed_msg_sub_.subscribe(nh_, "goal_detect_msg", 1);
+			zed_msg_sub_.subscribe(nh_, "/zed_data/pointstamped_goal_msg", 1);
 
 			//tf stuff
 			tf2_filter_.registerCallback(boost::bind(&AlignAction::ZEDMsgCB, this, _1));
@@ -139,6 +139,7 @@ class AlignAction {
 		}
 		void y_error_cb(const std_msgs::Bool &msg)
 		{
+			ROS_ERROR_STREAM("y error callback is running");
 			y_aligned_ = msg.data;
 		}
 		void cargo_error_cb(const std_msgs::Float64MultiArray &msg)
@@ -148,6 +149,7 @@ class AlignAction {
 		}
 		void ZEDMsgCB(const geometry_msgs::PointStampedConstPtr &raw_goal_location)
 		{
+			ROS_ERROR_STREAM("receiving ZED data *******************************");
 			goals_found = true;
 			try
 			{

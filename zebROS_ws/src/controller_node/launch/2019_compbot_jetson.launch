@@ -11,6 +11,11 @@
 	<arg name="static_map" default="True"/>
 	<arg name="record" default="false" />
 
+	<group ns="zed_data">
+		<include file="$(find controller_node)/launch/tape_detection.launch" />
+		<node name="translate_to_pointstamped" pkg="goal_detection" type="translate_to_pointstamped" output="screen" />
+	</group>
+
 	<group ns="frcrobot_jetson">
 
 		<!-- These need to be replaced with the real thing -->
@@ -43,11 +48,6 @@
 	</group>
 
 	<include file="$(find controller_node)/launch/tf_2019.launch" />
-
-	<group ns="zed_data">
-		<include file="$(find controller_node)/launch/tape_detection.launch" />
-		<node name="translate_to_pointstamped" pkg="goal_detection" type="translate_to_pointstamped" />
-	</group>
 
 	<group ns="rosbridge_server">
 		<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
@@ -112,6 +112,8 @@
 		<node name="profile_follow" pkg="robot_visualizer" type="profile_follow" output="screen" />
 		-->
 		<!-- todo - remove next 2 config files after moving profile gen to swerve drive controller -->
+		<rosparam file="$(find ros_control_boilerplate)/config/2019_swerve_drive.yaml" command="load"/>
+		<rosparam file="$(find ros_control_boilerplate)/config/talon_swerve_offsets_offseason.yaml" command="load"/>
 		<node name="base_trajectory_node" pkg="base_trajectory" type="base_trajectory_node" output="screen" > </node> 
 		<node name="point_gen" pkg="swerve_point_generator" type="point_gen" output="screen" />
 		<node name="map_server" pkg="map_server" type="map_server" args="$(find controller_node)/maps/2018FRC_field.yaml" output="screen" if="$(arg static_map)">
