@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   talon_swerve_drive_controller
   swerve_point_generator
   goal_detection
+  tf2_ros
 )
 
 include_directories(
@@ -135,7 +136,7 @@ generate_messages(DEPENDENCIES actionlib_msgs std_msgs)
 catkin_package(
    INCLUDE_DIRS include
    #LIBRARIES behaviors
-   CATKIN_DEPENDS actionlib_msgs actionlib nav_msgs roscpp rospy std_msgs teraranger_array
+   CATKIN_DEPENDS actionlib_msgs actionlib nav_msgs roscpp rospy std_msgs teraranger_array tf2_ros
    DEPENDS 
 )
 

@@ -45,11 +45,10 @@
 		/frcrobot_rio/joystick_states_raw
 		/frcrobot_jetson/pdp_states
 		/frcrobot_jetson/pcm_states
-		/goal_detection_node/goal_detect_msg
-		/zed_goal/depth/depth_registered
-		/zed_goal/left/image_rect_color
-		/zed_goal/odom
-		/zed_goal/pose
+		/zed_data/zed_goal/depth/depth_registered
+		/zed_data/zed_goal/left/image_rect_color
+		/zed_data/zed_goal/odom
+		/zed_data/zed_goal/pose
 		/teleop/translator0/joystick_states
 		/teleop/elevator_setpoint
 		"/>

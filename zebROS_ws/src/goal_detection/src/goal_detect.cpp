@@ -175,8 +175,8 @@ int main(int argc, char **argv)
 	nh.getParam("sub_rate", sub_rate);
 	nh.getParam("pub_rate", pub_rate);
 	nh.getParam("batch", batch);
-	message_filters::Subscriber<Image> frame_sub(nh, "/zed_goal/left/image_rect_color", sub_rate);
-	message_filters::Subscriber<Image> depth_sub(nh, "/zed_goal/depth/depth_registered", sub_rate);
+	message_filters::Subscriber<Image> frame_sub(nh, "zed_goal/left/image_rect_color", sub_rate);
+	message_filters::Subscriber<Image> depth_sub(nh, "zed_goal/depth/depth_registered", sub_rate);
 	typedef sync_policies::ApproximateTime<Image, Image > MySyncPolicy2;
 	// ApproximateTime takes a queue size as its constructor argument, hence MySyncPolicy(xxx)
 	Synchronizer<MySyncPolicy2> sync2(MySyncPolicy2(50), frame_sub, depth_sub);

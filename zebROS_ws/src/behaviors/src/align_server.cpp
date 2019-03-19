@@ -11,7 +11,13 @@
 #include "behaviors/PathGoal.h"
 #include "behaviors/PathAction.h"
 #include "goal_detection/GoalDetection.h"
+//tf stuff
 #include "tf2_ros/transform_listener.h"
+#include "tf2_ros/message_filter.h"
+#include "message_filters/subscriber.h"
+#include "geometry_msgs/PointStamped.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+
 
 double align_timeout;
 double orient_timeout;
@@ -25,8 +31,6 @@ double elevator_timeout;
 double path_timeout;
 
 bool goals_found;
-
-behaviors::PathGoal path_location_goal;
 
 //bool startup = true; //disable all pid nodes on startup
 class AlignAction {
@@ -52,7 +56,7 @@ class AlignAction {
 		ros::Subscriber cargo_distance_error_sub_;
 		ros::Subscriber y_error_sub_;
 		ros::Subscriber cargo_error_sub_;
-		ros::Subscriber zed_msg_sub_;
+		message_filters::Subscriber<geometry_msgs::PointStamped> zed_msg_sub_;
 
         ros::ServiceClient BrakeSrv;
 
@@ -62,6 +66,14 @@ class AlignAction {
 		bool cargo_aligned_ = false;
 		bool orient_aligned_ = false;
 		bool distance_aligned_ = false;
+
+		//tf stuff
+		std::string target_frame_;
+		tf2_ros::Buffer buffer_;
+		tf2_ros::TransformListener tf2_;
+		tf2_ros::MessageFilter<geometry_msgs::PointStamped> tf2_filter_;
+
+		geometry_msgs::PointStamped relative_goal_location_;
 
 	public:
 		//make the executeCB function run every time the actionlib server is called
@@ -83,7 +95,10 @@ class AlignAction {
 			enable_y_pub_(enable_y_pub_),
 			enable_align_hatch_pub_(enable_align_hatch_pub_),
 			enable_align_cargo_pub_(enable_align_cargo_pub_),
-			enable_cargo_pub_(enable_cargo_pub_)
+			enable_cargo_pub_(enable_cargo_pub_),
+			tf2_(buffer_),
+			target_frame_("hatch_frame"),
+			tf2_filter_(zed_msg_sub_, buffer_, target_frame_, 10, 0)
 		{
             as_.start();
 
@@ -96,7 +111,10 @@ class AlignAction {
 			cargo_distance_error_sub_ = nh_.subscribe("cargo_distance_pid/pid_debug", 1, &AlignAction::cargo_distance_error_cb, this);
 			cargo_error_sub_ = nh_.subscribe("cargo_pid/pid_debug", 1, &AlignAction::cargo_error_cb, this);
 			y_error_sub_ = nh_.subscribe("align_with_terabee/y_aligned", 1, &AlignAction::y_error_cb, this);
-			zed_msg_sub_ = nh_.subscribe("goal_detect_msg", 1, &AlignAction::zed_msg_cb, this);
+			zed_msg_sub_.subscribe(nh_, "goal_detect_msg", 1);
+
+			//tf stuff
+			tf2_filter_.registerCallback(boost::bind(&AlignAction::ZEDMsgCB, this, _1));
 		}
 
 		~AlignAction(void)
@@ -128,46 +146,18 @@ class AlignAction {
 			cargo_aligned_ = (fabs(msg.data[0]) < cargo_error_threshold);
 			//ROS_WARN_STREAM_THROTTLE(1, "cargo error: " << msg.data[0]);
 		}
-		void zed_msg_cb(const goal_detection::GoalDetection &msg)
+		void ZEDMsgCB(const geometry_msgs::PointStampedConstPtr &raw_goal_location)
 		{
-			size_t num_goals = msg.location.size();
-			int index;
 			goals_found = true;
-			if (num_goals == 0)
+			try
 			{
-				ROS_INFO_STREAM("No goals found. Skipping");
-				goals_found = false;
-				return;
+				buffer_.transform(*raw_goal_location, relative_goal_location_, target_frame_);
 			}
-			else if (num_goals > 1)
+			catch (tf2::TransformException &ex)
 			{
-				double min_distance = std::numeric_limits<double>::max();
-				index = -1;
-				for(size_t i = 0; i < num_goals; i++)
-				{
-					if(msg.location[i].x < min_distance)
-					{
-						min_distance = msg.location[i].x;
-						index = i;
-					}
-				}
-				if(index == -1)
-				{
-					ROS_INFO_STREAM("No goals found that are not infinitely far away. Skipping.");
-					return;
-				}
+				ROS_WARN("Failed %s\n", ex.what());
 			}
-			else
-			{
-				index = 0;
-			}
-			path_location_goal.x = msg.location[index].x;
-			path_location_goal.y = msg.location[index].y;
-			path_location_goal.rotation = 0;
-			path_location_goal.time_to_run = time_to_path;
 		}
-
-
 
 		//define the function to be executed when the actionlib server is called
 		void executeCB(const behaviors::AlignGoalConstPtr &goal) {
@@ -320,6 +310,11 @@ class AlignAction {
 				if(goals_found)
 				{
 					ROS_INFO_STREAM("Sending the pathing goal");
+					behaviors::PathGoal path_location_goal;
+					path_location_goal.x = relative_goal_location_.point.x;
+					path_location_goal.y = relative_goal_location_.point.y;
+					path_location_goal.rotation = 0;
+					path_location_goal.time_to_run = time_to_path;
 					ac_path_.sendGoal(path_location_goal);
 					bool finished_before_timeout = ac_path_.waitForResult(ros::Duration(path_timeout)); //TODO VERY IMPORTANT -- CHANGE TIMEOUTS IN PATH SERVER
 					if(finished_before_timeout) {
