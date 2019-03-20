@@ -187,7 +187,8 @@ bool full_gen(swerve_point_generator::FullGenCoefs::Request &req, swerve_point_g
 			}
 		}
 		ROS_INFO_STREAM("velocity vector = " << srv_msg.points[1].positions[0] - srv_msg.points[0].positions[0] << " " << srv_msg.points[1].positions[1] - srv_msg.points[0].positions[1] << " rotation = " << srv_msg.points[1].positions[2] - srv_msg.points[0].positions[2] << " angle = " << srv_msg.points[1].positions[2]);
-		const std::array<Eigen::Vector2d, WHEELCOUNT> angles_positions  = swerve_math->motorOutputs({srv_msg.points[1].positions[0] - srv_msg.points[0].positions[0], srv_msg.points[1].positions[1] - srv_msg.points[0].positions[1]}, srv_msg.points[1].positions[2] - srv_msg.points[0].positions[2], srv_msg.points[1].positions[2], curPos, false);
+		const std::array<Eigen::Vector2d, WHEELCOUNT> angles_positions  = swerve_math->motorOutputs({srv_msg.points[1].positions[0] - srv_msg.points[0].positions[0], srv_msg.points[1].positions[1] - srv_msg.points[0].positions[1]}, srv_msg.points[1].positions[2] - srv_msg.points[0].positions[2], M_PI/2, curPos, false);
+		ROS_INFO_STREAM("angle passed in = " <<  srv_msg.points[1].positions[2]);
 		//TODO: angles on the velocity array below are superfluous, could remove
 		//std::array<Eigen::Vector2d, WHEELCOUNT> angles_velocities  = swerve_math->motorOutputs({srv_msg.points[1].velocities[0], srv_msg.points[1].velocities[1]}, -srv_msg.points[1].velocities[2], /*srv_msg.points[1].positions[2]*/ M_PI / 2.0, false, holder, false, curPos, false);
 		for (size_t k = 0; k < WHEELCOUNT; k++)
@@ -239,9 +240,9 @@ bool full_gen(swerve_point_generator::FullGenCoefs::Request &req, swerve_point_g
 		}
 		for (int i = 0; i < point_count - k_p; i++)
 		{
-			const std::array<Eigen::Vector2d, WHEELCOUNT> angles_positions  = swerve_math->motorOutputs({srv_msg.points[i + 1].positions[0] - srv_msg.points[i].positions[0], srv_msg.points[i + 1].positions[1] - srv_msg.points[i].positions[1]}, srv_msg.points[i + 1].positions[2] - srv_msg.points[i].positions[2], srv_msg.points[i + 1].positions[2], curPos, false);
+			const std::array<Eigen::Vector2d, WHEELCOUNT> angles_positions  = swerve_math->motorOutputs({srv_msg.points[i + 1].positions[0] - srv_msg.points[i].positions[0], srv_msg.points[i + 1].positions[1] - srv_msg.points[i].positions[1]}, srv_msg.points[i + 1].positions[2] - srv_msg.points[i].positions[2], M_PI/2, curPos, false);
 			//TODO: angles on the velocity array below are superfluous, could remove
-			std::array<Eigen::Vector2d, WHEELCOUNT> angles_velocities  = swerve_math->motorOutputs({srv_msg.points[i + 1].velocities[0], srv_msg.points[i + 1].velocities[1]}, srv_msg.points[i + 1].velocities[2], srv_msg.points[i + 1].positions[2], curPos, false);
+			std::array<Eigen::Vector2d, WHEELCOUNT> angles_velocities  = swerve_math->motorOutputs({srv_msg.points[i + 1].velocities[0], srv_msg.points[i + 1].velocities[1]}, srv_msg.points[i + 1].velocities[2], M_PI/2, curPos, false);
 
 			for(size_t i = 0; i < angles_positions.size(); i++)
 			{
@@ -407,7 +408,7 @@ int main(int argc, char **argv)
 		double dbl_val = 0;
 		if (!nh.getParam("offset", dbl_val))
 			ROS_ERROR_STREAM("Can not read offset for " << *it);
-		offsets.push_back(dbl_val - M_PI/2);
+		offsets.push_back(dbl_val);
 	}
 
 	swerve_math = std::make_shared<swerve>(wheel_coords, offsets, drive_ratios, units, model);
