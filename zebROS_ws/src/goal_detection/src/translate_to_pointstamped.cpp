@@ -10,7 +10,7 @@ void ZEDMsgCallback(const goal_detection::GoalDetection &msg)
 	int index;
 	if (num_goals == 0)
 	{
-		ROS_INFO_STREAM("No goals found. Skipping");
+		ROS_INFO_STREAM_THROTTLE(0.25, "No goals found. Skipping");
 		return;
 	}
 	else if (num_goals > 1)
@@ -27,7 +27,7 @@ void ZEDMsgCallback(const goal_detection::GoalDetection &msg)
 		}
 		if(index == -1)
 		{
-			ROS_INFO_STREAM("No goals found that are not infinitely far away. Skipping.");
+			ROS_INFO_STREAM_THROTTLE(0.25, "No goals found that are not infinitely far away. Skipping.");
 			return;
 		}
 	}

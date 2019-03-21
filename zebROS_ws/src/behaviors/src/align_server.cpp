@@ -97,7 +97,7 @@ class AlignAction {
 			enable_align_cargo_pub_(enable_align_cargo_pub_),
 			enable_cargo_pub_(enable_cargo_pub_),
 			tf2_(buffer_),
-			target_frame_("hatch_frame"),
+			target_frame_("panel_outtake"),
 			tf2_filter_(zed_msg_sub_, buffer_, target_frame_, 10, 0)
 		{
             as_.start();
@@ -139,7 +139,6 @@ class AlignAction {
 		}
 		void y_error_cb(const std_msgs::Bool &msg)
 		{
-			ROS_ERROR_STREAM("y error callback is running");
 			y_aligned_ = msg.data;
 		}
 		void cargo_error_cb(const std_msgs::Float64MultiArray &msg)
@@ -149,7 +148,6 @@ class AlignAction {
 		}
 		void ZEDMsgCB(const geometry_msgs::PointStampedConstPtr &raw_goal_location)
 		{
-			ROS_ERROR_STREAM("receiving ZED data *******************************");
 			goals_found = true;
 			try
 			{

@@ -90,7 +90,7 @@ void callback(const ImageConstPtr &frameMsg, const ImageConstPtr &depthMsg)
 		geometry_msgs::Point32 dummy;
 		gd_msg.header.seq = frameMsg->header.seq;
 		gd_msg.header.stamp = frameMsg->header.stamp;
-		gd_msg.header.frame_id = frameMsg->header.frame_id;
+		gd_msg.header.frame_id = "zed_camera_center";
 		dummy.x = gfd[i].pos.x;
 		dummy.y = gfd[i].pos.y;
 		dummy.z = gfd[i].pos.z;
