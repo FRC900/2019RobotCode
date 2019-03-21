@@ -131,6 +131,7 @@
 	<group ns="align_server">
 
 		<rosparam file="$(find behaviors)/config/align_server.yaml" command="load"/>
+		<rosparam file="$(find behaviors)/config/intakeHatchPanelServer.yaml" command="load"/>
 		<node name="align_ac_server" pkg="behaviors" type="align_server" output="screen" />
 
 		<!-- Align with notch -->
