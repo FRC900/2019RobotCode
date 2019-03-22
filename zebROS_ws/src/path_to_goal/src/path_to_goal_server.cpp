@@ -17,6 +17,7 @@ ros::ServiceClient swerve_controller;
 ros::ServiceClient spline_gen;
 ros::ServiceClient VisualizeService;
 bool outOfPoints;
+double wait_for_server_timeout;
 
 void talonStateCallback(const talon_state_controller::TalonState &talon_state);
 
@@ -125,6 +126,34 @@ public:
 	{
 		ROS_INFO_STREAM("Executing path action callback");
 		bool success = true;
+		bool preempted = false;
+		bool timed_out = false;
+		bool aborted = false;
+
+		ros::Rate r(10);
+
+		bool spline_gen_found = spline_gen.waitForExistence(ros::Duration(wait_for_server_timeout));
+		bool point_gen_found = point_gen.waitForExistence(ros::Duration(wait_for_server_timeout));
+		bool swerve_controller_found = swerve_controller.waitForExistence(ros::Duration(wait_for_server_timeout));
+
+		if(!spline_gen_found)
+		{
+			ROS_ERROR_STREAM("The spline gen service was not loaded before the panel intake server needed it");
+			as_.setPreempted();
+			return;
+		}
+		if(!point_gen_found)
+		{
+			ROS_ERROR_STREAM("The point gen service was not loaded before the panel intake server needed it");
+			as_.setPreempted();
+			return;
+		}
+		if(!swerve_controller_found)
+		{
+			ROS_ERROR_STREAM("The swevre controller service was not loaded before the panel intake server needed it");
+			as_.setPreempted();
+			return;
+		}
 
 		base_trajectory::GenerateSpline srvBaseTrajectory;
 		srvBaseTrajectory.request.points.resize(1);
@@ -172,10 +201,7 @@ public:
 			success = false;
 		}
 
-		ros::Rate r(10);
 		const double startTime = ros::Time::now().toSec();
-		bool aborted = false;
-		bool timed_out = false;
 
 		while (ros::ok() && !(aborted || success || timed_out))
 		{
@@ -196,13 +222,28 @@ public:
 			timed_out = timed_out || (ros::Time::now().toSec() - startTime) > goal->time_to_run;
 		}
 
-		if (!aborted)
+		behaviors::PathResult result;
+		result.timeout = timed_out;
+
+		if(timed_out)
 		{
-			behaviors::PathResult result;
-			result.success = success;
-			result.timeout = timed_out;
+			ROS_WARN("%s: Timed Out", action_name_.c_str());
+			result.success = false;
 			as_.setSucceeded(result);
 		}
+		else if(preempted)
+		{
+			ROS_WARN("%s: Preempted", action_name_.c_str());
+			result.success = false;
+			as_.setPreempted(result);
+		}
+		else //implies succeeded
+		{
+			ROS_WARN("%s: Succeeded", action_name_.c_str());
+			result.success = true;
+			as_.setSucceeded(result);
+		}
+		return;
 	}
 };
 
@@ -211,6 +252,8 @@ int main(int argc, char** argv)
 	ros::init(argc, argv, "path_server");
 	ros::NodeHandle n;
 	PathAction path("path_server", n);
+
+	wait_for_server_timeout = 3;
 
 	std::map<std::string, std::string> service_connection_header;
 	service_connection_header["tcp_nodelay"] = 1;
