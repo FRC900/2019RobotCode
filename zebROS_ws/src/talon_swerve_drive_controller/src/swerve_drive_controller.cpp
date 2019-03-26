@@ -915,6 +915,7 @@ void TalonSwerveDriveController::stopping(const ros::Time & /*time*/)
 
 void TalonSwerveDriveController::brake()
 {
+/*
 	//Use parking config
 	const bool dont_set_angle_mode = dont_set_angle_mode_.load(std::memory_order_relaxed);
 	array<double, WHEELCOUNT> curPos;
@@ -928,7 +929,9 @@ void TalonSwerveDriveController::brake()
 		speed_joints_[i].setCommand(0.0);
 		if (!dont_set_angle_mode_)
 			steering_joints_[i].setCommand(park_angles[i]);
+		
 	}
+*/
 }
 
 void TalonSwerveDriveController::cmdVelCallback(const geometry_msgs::Twist &command)
