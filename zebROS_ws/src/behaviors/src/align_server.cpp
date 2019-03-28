@@ -163,6 +163,8 @@ class AlignAction {
 			ROS_INFO_STREAM("align server callback called");
 			ros::Rate r(30);
 
+			end_align = false;
+
 			double start_time = ros::Time::now().toSec();
 			double button_release_time = 0;
 			double time_since_start = 0;
