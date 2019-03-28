@@ -277,8 +277,17 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		//Joystick1: buttonB
 		if(joystick_states_array[0].buttonBPress)
 		{
+			if(joystick_states_array[0].leftTrigger <= 0.5)
+			{
+				//Align the robot
+				ROS_WARN("Joystick1: buttonBPress - Auto Align");
+				preemptActionlibServers();
+				behaviors::AlignGoal goal;
+				goal.has_cargo = false;
+				align_ac->sendGoal(goal);
+			}
+			
 			ROS_INFO_STREAM("Joystick1: bumperLeftPress");
-			preemptActionlibServers();
 			ROS_INFO_STREAM("Joystick1: Place Panel");
 			behaviors::PlaceGoal goal;
 			goal.setpoint_index = elevator_cur_setpoint_idx;
@@ -361,9 +370,24 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		*/
 		if(joystick_states_array[0].bumperLeftPress)
 		{
+
+			if(joystick_states_array[0].leftTrigger <= 0.5)
+			{
+				//Align the robot
+				ROS_WARN("Joystick1: bumperLeftPress - Auto Align");
+				preemptActionlibServers();
+				behaviors::AlignGoal goal;
+				goal.trigger = true;
+				if(cargo_limit_switch_true_count > config.limit_switch_debounce_iterations) {
+				goal.has_cargo = true;
+				}
+				else {
+				goal.has_cargo = false;
+				}
+				align_ac->sendGoal(goal);
+			}
             //TODO get rid of this testing code
             //If we have a cargo, outtake it
-			preemptActionlibServers();
             ROS_INFO_STREAM("Joystick1: Place Cargo");
             behaviors::PlaceGoal goal;
             goal.setpoint_index = elevator_cur_setpoint_idx;
