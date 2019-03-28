@@ -74,6 +74,7 @@ ros::Publisher enable_align;
 
 ros::ServiceClient BrakeSrv;
 ros::ServiceClient run_align;
+ros::ServiceClient finish_align;
 
 ros::ServiceClient manual_server_panelIn;
 ros::ServiceClient manual_server_cargoOut;
@@ -265,13 +266,9 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		}
 		if(joystick_states_array[0].buttonARelease)
 		{
-			/*
-            std_msgs::Bool enable_pid;
-			enable_pid.data = false;
-            terabee_pid.publish(enable_pid);
-			enable_align.publish(enable_pid);
-			*/
-			ROS_INFO_STREAM("Joystick1: buttonARelease");
+			std_srvs::SetBool srv;
+			srv.request.data = true;
+			finish_align.call(srv);
 		}
 
 		//Joystick1: buttonB
@@ -934,6 +931,7 @@ int main(int argc, char **argv)
 	elevator_ac = std::make_shared<actionlib::SimpleActionClient<behaviors::ElevatorAction>>("/elevator/elevator_server", true);
 
 	run_align = n.serviceClient<std_srvs::SetBool>("/align_with_terabee/run_align");
+	finish_align = n.serviceClient<std_srvs::SetBool>("/align_with_terabee/finish_align");
 
 	manual_server_panelIn = n.serviceClient<panel_intake_controller::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command");
 	//manual_server_cargoOut = n.serviceClient<cargo_outtake_controller::CargoOuttakeSrv>("/cargo_outtake_controller/cargo_outtake_command");

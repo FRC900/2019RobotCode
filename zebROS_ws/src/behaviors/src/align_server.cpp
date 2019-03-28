@@ -8,12 +8,14 @@
 #include "behaviors/enumerated_elevator_indices.h"
 #include "actionlib/server/simple_action_server.h"
 #include "actionlib/client/simple_action_client.h"
+#include "std_srvs/SetBool.h"
 
 double align_timeout;
 double orient_timeout;
 double orient_error_threshold;
 double x_error_threshold;
 double cargo_error_threshold;
+bool end_align = false;
 
 
 // TODO
@@ -56,7 +58,7 @@ class AlignAction {
 		// TODO this result should be a local var
 		behaviors::AlignResult result_; //variable to store result of the actionlib action
 		actionlib::SimpleActionClient<behaviors::ElevatorAction> ac_elevator_;
-        
+
 		std::shared_ptr<ros::Publisher> enable_navx_pub_;
 		std::shared_ptr<ros::Publisher> hatch_panel_enable_distance_pub_;
 		std::shared_ptr<ros::Publisher> cargo_enable_distance_pub_;
@@ -72,6 +74,8 @@ class AlignAction {
 		ros::Subscriber cargo_error_sub_;
 
         ros::ServiceClient BrakeSrv;
+
+		ros::ServiceServer finish_align_;
 
 		bool hatch_panel_distance_aligned_ = false;
 		bool cargo_distance_aligned_ = false;
@@ -106,6 +110,8 @@ class AlignAction {
             std::map<std::string, std::string> service_connection_header;
             service_connection_header["tcp_nodelay"] = "1";
 			BrakeSrv = nh_.serviceClient<std_srvs::Empty>("/frcrobot_jetson/swerve_drive_controller/brake", false, service_connection_header);
+
+			finish_align_ = nh_.advertiseService("finish_align", &AlignAction::finishAlign, this);
 
 			navx_error_sub_ = nh_.subscribe("navX_pid/pid_debug", 1, &AlignAction::navx_error_cb, this);
 			hatch_panel_distance_error_sub_ = nh_.subscribe("hatch_panel_distance_pid/pid_debug", 1, &AlignAction::hatch_panel_distance_error_cb, this);
@@ -142,6 +148,13 @@ class AlignAction {
 		{
 			cargo_aligned_ = (fabs(msg.data[0]) < cargo_error_threshold);
 			//ROS_WARN_STREAM_THROTTLE(1, "cargo error: " << msg.data[0]);
+		}
+
+		bool finishAlign(std_srvs::SetBool::Request &req,
+						std_srvs::SetBool::Response &res)
+		{
+			end_align = req.data;
+			return true;
 		}
 
 		//define the function to be executed when the actionlib server is called
