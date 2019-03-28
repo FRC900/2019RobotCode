@@ -11,6 +11,7 @@
 #include "std_srvs/SetBool.h"
 
 double align_timeout;
+double hold_time_threshhold;
 double orient_timeout;
 double orient_error_threshold;
 double x_error_threshold;
@@ -163,10 +164,13 @@ class AlignAction {
 			ros::Rate r(30);
 
 			double start_time = ros::Time::now().toSec();
+			double button_release_time = 0;
+			double time_since_start = 0;
 			bool preempted = false;
 			bool timed_out = false;
 			bool orient_timed_out = false;
 			bool aligned = false;
+			bool button_hold = true; //Assume true until it gets the finish align call.
 
 			orient_aligned_ = false;
 			distance_aligned_ = false;
@@ -193,6 +197,17 @@ class AlignAction {
 				ros::spinOnce();
 				r.sleep();
 
+				time_since_start = (ros::Time::now().toSec() - start_time);
+
+				if(end_align) //evaluate press vs. hold when server gets the button release.
+				{
+					//TODO make 0.25 a config value
+					button_hold = (time_since_start >= hold_time_threshhold);
+					button_release_time = ros::Time::now().toSec();
+					if(button_hold) // If the button was held, stop aligning when released.
+						break;
+				}
+
 				//Define enable messages for pid nodes
 				std_msgs::Bool orient_msg;
 				std_msgs::Bool distance_msg;
@@ -210,28 +225,28 @@ class AlignAction {
 				//Publish enable messages
 				enable_navx_pub_->publish(orient_msg);
 				if(goal->has_cargo) {
-					distance_msg.data = (orient_aligned_ || orient_timed_out) && !cargo_distance_aligned_;	//Enable distance pid once orient is aligned or timed out
+					distance_msg.data = (orient_aligned_ || orient_timed_out) && !cargo_distance_aligned_ && !button_hold;	//Enable distance pid once orient is aligned or timed out and button was not held.
 					cargo_enable_distance_pub_->publish(distance_msg);
-					terabee_msg.data = (orient_aligned_ || orient_timed_out) && cargo_distance_aligned_;     //Enable terabee node when distance is aligned and  orient aligns or orient times out
-					ROS_ERROR_STREAM("Terabee_msg cargo: " << ((orient_aligned_ || orient_timed_out) && cargo_distance_aligned_));
+					terabee_msg.data = (orient_aligned_ || orient_timed_out) && cargo_distance_aligned_ && !button_hold;     //Enable terabee node when distance is aligned and  orient aligns or orient times out and button was not held.
+					ROS_ERROR_STREAM("Terabee_msg cargo: " << ((orient_aligned_ || orient_timed_out) && cargo_distance_aligned_ && !button_hold));
 					enable_cargo_pub_->publish(terabee_msg);
 					enable_align_cargo_pub_->publish(enable_align_msg);
 					aligned = cargo_distance_aligned_ && cargo_aligned_;	 //Check aligned
 				}
 				else {
                     /*
-					distance_msg.data = (orient_aligned_ || orient_timed_out) && !hatch_panel_distance_aligned_;	//Enable distance pid once orient is aligned or timed out
+					distance_msg.data = (orient_aligned_ || orient_timed_out) && !hatch_panel_distance_aligned_ && !button_hold;	//Enable distance pid once orient is aligned or timed out and button was not held.
 					hatch_panel_enable_distance_pub_->publish(distance_msg);
-					terabee_msg.data = (orient_aligned_ || orient_timed_out) && hatch_panel_distance_aligned_;     //Enable terabee node when distance is aligned and  orient aligns or orient times out
+					terabee_msg.data = (orient_aligned_ || orient_timed_out) && hatch_panel_distance_aligned_ && !button_hold;     //Enable terabee node when distance is aligned and  orient aligns or orient times out and button was not held.
 					enable_y_pub_->publish(terabee_msg);
                     */
 					enable_align_hatch_pub_->publish(enable_align_msg);
 					aligned = hatch_panel_distance_aligned_ && y_aligned_;		//Check aligned
 				}
 
-				//Check timed out
-				timed_out = (ros::Time::now().toSec() - start_time) > align_timeout;
-				orient_timed_out = (ros::Time::now().toSec() - start_time) > orient_timeout;
+				//Check timed out. Won't time out until after button has been released.
+				timed_out = ((ros::Time::now().toSec() - button_release_time) > align_timeout) && (button_release_time > 0);
+				orient_timed_out = ((ros::Time::now().toSec() - buttn_release_time) > orient_timeout) && (button_release_time > 0);
 				//Check preempted
 				preempted = as_.isPreemptRequested();
 
@@ -311,6 +326,8 @@ int main(int argc, char** argv) {
 
 	if(!n_params.getParam("align_timeout", align_timeout))
 		ROS_ERROR_STREAM("Could not read align_timeout in align_server");
+	if(!n_params.getParam("hold_time_threshhold", hold_time_threshhold))
+		ROS_ERROR_STREAM("Could not read hold_time_threshhold in align_server");
 	if(!n_params.getParam("orient_timeout", orient_timeout))
 		ROS_ERROR_STREAM("Could not read orient_timeout in align_server");
 	if(!n_params.getParam("x_error_threshold", x_error_threshold))
