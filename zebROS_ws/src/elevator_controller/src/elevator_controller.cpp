@@ -35,6 +35,42 @@ bool ElevatorController::init(hardware_interface::RobotHW *hw,
 		return false;
 	}
 
+	if (!controller_nh.getParam("stage_2_height", config_.stage_2_height))
+	{
+		ROS_ERROR("Could not find stage_2_height");
+		return false;
+	}
+
+	if (!controller_nh.getParam("motion_magic_velocity_fast", config_.motion_magic_velocity_fast))
+	{
+		ROS_ERROR("Could not find motion_magic_velocity_fast");
+		return false;
+	}
+
+	if (!controller_nh.getParam("motion_magic_velocity_slow", config_.motion_magic_velocity_slow))
+	{
+		ROS_ERROR("Could not find motion_magic_velocity_slow");
+		return false;
+	}
+
+	if (!controller_nh.getParam("motion_magic_acceleration_fast", config_.motion_magic_acceleration_fast))
+	{
+		ROS_ERROR("Could not find motion_magic_acceleration_fast");
+		return false;
+	}
+
+	if (!controller_nh.getParam("motion_magic_acceleration_slow", config_.motion_magic_acceleration_slow))
+	{
+		ROS_ERROR("Could not find motion_magic_acceleration_slow");
+		return false;
+	}
+
+	/*
+	if (!controller_nh.getParam("motion_s_curve_strength",config_.motion_s_curve_strength))
+	{
+		ROS_ERROR("Could not find motion_s_curve_strength");
+		return false;
+	}*/
 	//get config values for the elevator talon
 	XmlRpc::XmlRpcValue elevator_params;
 	if (!controller_nh.getParam("elevator_joint", elevator_params))
@@ -60,6 +96,7 @@ void ElevatorController::starting(const ros::Time &/*time*/) {
 	zeroed_ = false;
 	last_time_down_ = ros::Time::now();
 	last_mode_ = hardware_interface::TalonMode_Disabled;
+	last_position_ = -1; // give nonsense position to force update on first time through update()
 	position_command_.writeFromNonRT(ElevatorCommand());
 }
 
@@ -75,6 +112,7 @@ void ElevatorController::update(const ros::Time &/*time*/, const ros::Duration &
 
 	if (zeroed_) // run normally, seeking to various positions
 	{
+		elevator_joint_.setMode(hardware_interface::TalonMode_MotionMagic);
 		if (elevator_joint_.getMode() == hardware_interface::TalonMode_Disabled && last_mode_ != hardware_interface::TalonMode_Disabled)
 		{
 			position_command_.writeFromNonRT(ElevatorCommand (elevator_joint_.getPosition(),false));
@@ -85,20 +123,22 @@ void ElevatorController::update(const ros::Time &/*time*/, const ros::Duration &
 		//if we're not climbing, add an arbitrary feed forward to hold the elevator up
 		if(!setpoint.GetGoSlow())
 		{
-			elevator_joint_.setMode(hardware_interface::TalonMode_Position);
+			elevator_joint_.setMotionAcceleration(config_.motion_magic_acceleration_fast);
+			elevator_joint_.setMotionCruiseVelocity(config_.motion_magic_velocity_fast);
 			elevator_joint_.setPIDFSlot(0);
 			// Add arbitrary feed forward for upwards motion
 			// We could have arb ff for both up and down, but seems
 			// easier (and good enough) to tune PID for down motion
 			// and add an arb FF correction for up
-			if(elevator_joint_.getPosition() > 0.8 && last_position_ < 0.8) {
-				elevator_joint_.setDemand1Type(hardware_interface::DemandType_ArbitraryFeedForward);
-				elevator_joint_.setDemand1Value(config_.arb_feed_forward_up);
-			}
-			else if (elevator_joint_.getPosition() < 0.8 && last_position_ > 0.8) {
-				elevator_joint_.setDemand1Type(hardware_interface::DemandType_Neutral);
-				elevator_joint_.setDemand1Value(0);
-			}
+
+			//if(elevator_joint_.getPosition() >= config_.stage_2_height && last_position_ <= config_.stage_2_height) {
+			elevator_joint_.setDemand1Type(hardware_interface::DemandType_ArbitraryFeedForward);
+			elevator_joint_.setDemand1Value(config_.arb_feed_forward_up);
+			//}
+			//else if (elevator_joint_.getPosition() <= config_.stage_2_height && last_position_ >= config_.stage_2_height) {
+			//	elevator_joint_.setDemand1Type(hardware_interface::DemandType_Neutral);
+			//	elevator_joint_.setDemand1Value(0);
+			//}
 
 			//for now, up and down PID is the same, so slot 1 is used for climbing
 			/*
@@ -115,7 +155,8 @@ void ElevatorController::update(const ros::Time &/*time*/, const ros::Duration &
 		}
 		else //climbing
 		{
-			elevator_joint_.setMode(hardware_interface::TalonMode_MotionMagic);
+			elevator_joint_.setMotionAcceleration(config_.motion_magic_acceleration_slow);
+			elevator_joint_.setMotionCruiseVelocity(config_.motion_magic_velocity_slow);
 			elevator_joint_.setDemand1Type(hardware_interface::DemandType_ArbitraryFeedForward);
 			elevator_joint_.setDemand1Value(config_.arb_feed_forward_down);
 			//elevator_joint_.setPeakOutputForward(0.0);
@@ -171,7 +212,8 @@ bool ElevatorController::cmdService(elevator_controller::ElevatorSrv::Request  &
 		{
 			ROS_INFO("Elevator controller: now in climbing mode");
 		}
-		else { //reset to default -- although, this should never be called after endgame
+		else
+		{ //reset to default -- although, this should never be called after endgame
 			ROS_INFO("Elevator controller: normal peak output");
 		}
 

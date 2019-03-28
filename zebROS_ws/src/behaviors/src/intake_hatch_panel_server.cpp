@@ -45,6 +45,7 @@ class IntakeHatchPanelAction
 
 		//initialize the server that will accept a command to finish the actionlib server (upon button release)
 		finish_actionlib_server_ = nh_.advertiseService("finish_actionlib", &IntakeHatchPanelAction::finishActionlibCB, this); //namespaces mean that the name doesn't have to be as specific
+		finish_command_sent_ = false;
 	}
 
 		~IntakeHatchPanelAction(void) {}
@@ -66,20 +67,19 @@ class IntakeHatchPanelAction
 			ros::Rate r(10);
 
 			//define variables that will be re-used for each call to a controller
-			double start_time = ros::Time::now().toSec();
 
 			//define variables that will be set true if the actionlib action is to be ended
 			//this will cause subsequent controller calls to be skipped, if the template below is copy-pasted
 			//if both of these are false, we assume the action succeeded
 			bool preempted = false;
-			bool timed_out = false;
+			bool timed_out = false; // TODO : never set?
 
 			finish_command_sent_ = false; //make sure this is what we think it should be
 
 			//release claw
 			panel_intake_controller::PanelIntakeSrv srv;
 			srv.request.claw_release = true;
-			srv.request.push_extend = true;
+			srv.request.push_extend = false;
 			//send request to controller
 			if(!panel_controller_client_.call(srv))
 			{
@@ -89,13 +89,15 @@ class IntakeHatchPanelAction
 			ros::spinOnce(); //update everything
 
 
-			/*/move elevator to intake location
+			//move elevator to intake location
 			behaviors::ElevatorGoal elev_goal;
 			elev_goal.setpoint_index = INTAKE;
 			elev_goal.place_cargo = false;
 			elev_goal.raise_intake_after_success = true;
 			ac_elevator_.sendGoal(elev_goal);
+
 			//determine if elevator server timed out or did not time out
+			const double start_time = ros::Time::now().toSec();
 			bool finished_before_timeout = ac_elevator_.waitForResult(ros::Duration(elevator_timeout - (ros::Time::now().toSec() - start_time)));
 			//if finished before timeout then it has either succeeded or failed 
 			if(finished_before_timeout) {
@@ -113,14 +115,15 @@ class IntakeHatchPanelAction
 			else {
 				ROS_ERROR("%s: Elevator Server ACTION TIMED OUT",action_name_.c_str());
 				timed_out = true;
+				//make sure elevator server finishes
+				ac_elevator_.cancelAllGoals();
 			}
 
 			//test if we got a preempt while waiting
 			if(as_.isPreemptRequested())
 			{
 				preempted = true;
-			}*/
-
+			}
 			//send commands to panel_intake_controller to grab the panel ---------------------------------------
 			if(!preempted && ros::ok())
 			{
@@ -136,15 +139,8 @@ class IntakeHatchPanelAction
 				ros::spinOnce(); //update everything
 
 				//wait until the panel intake button is released before retracting mech and lowering elevator
-				while(ros::ok() && !preempted)
+				while(!finish_command_sent_ && ros::ok() && !preempted)
 				{
-					ROS_WARN("At loop!!!!!");
-					//check if B button (panel outtake) was released
-					if(finish_command_sent_)
-					{
-						ROS_ERROR("Boom!");
-						break; //exit loop when button is released
-					}
 					//check if preempted
 					if(as_.isPreemptRequested())
 					{
@@ -153,10 +149,12 @@ class IntakeHatchPanelAction
 					else
 					{
 						//wait a bit before iterating the loop again
+						ros::spinOnce();
 						r.sleep();
 					}
 				}
-				finish_command_sent_ = false; //we're done processing this, so set it to false
+				//pause for a bit
+				ros::Duration(pause_time_after_extend).sleep();
 
 				//grab the panel - we can reuse the srv variable
 				srv.request.claw_release = false;
@@ -169,7 +167,7 @@ class IntakeHatchPanelAction
 				}
 				ros::spinOnce(); //update everything
 
-
+				ros::Duration(pause_time_after_clamp).sleep();
 			}
 
 			//Set final state - retract the panel mechanism and clamp (to stay within frame perimeter)
@@ -192,18 +190,20 @@ class IntakeHatchPanelAction
 			{
 				ROS_WARN("%s: Timed Out", action_name_.c_str());
 				result.success = false;
+				as_.setSucceeded(result);
 			}
 			else if(preempted)
 			{
 				ROS_WARN("%s: Preempted", action_name_.c_str());
 				result.success = false;
+				as_.setPreempted(result);
 			}
 			else //implies succeeded
 			{
 				ROS_WARN("%s: Succeeded", action_name_.c_str());
 				result.success = true;
+				as_.setSucceeded(result);
 			}
-			as_.setSucceeded(result);
 			return;
 		}
 		bool finishActionlibCB(behaviors::FinishActionlib::Request &req, behaviors::FinishActionlib::Response &/*res*/)

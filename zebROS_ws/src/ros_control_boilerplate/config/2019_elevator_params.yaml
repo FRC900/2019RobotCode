@@ -3,8 +3,14 @@ elevator_controller:
 
     elevator_joint: [ 'elevator_master', 'elevator_follower1', 'elevator_follower2', 'elevator_follower3' ]
 
-    arb_feed_forward_up: 0.04
+    arb_feed_forward_up: 0.03
     arb_feed_forward_down: -0.185
+
+    motion_magic_velocity_fast: 1.0
+    motion_magic_acceleration_fast: 2.0
+
+    motion_magic_velocity_slow: 0.25
+    motion_magic_acceleration_slow: 0.4
 
     # How quickly the elevator moves down when zeroing itself
     elevator_zeroing_percent_output: -0.2 # TODO : tune me
@@ -14,17 +20,13 @@ elevator_controller:
     # or has hit bottom and the limit switch is broken.  Stop
     # trying to drive down to prevent killing the motor
     elevator_zeroing_timeout:  2.0
-
+    stage_2_height: 0.8
     elevator_master: 
         type: talon_controllers/TalonControllerInterface 
         joint: elevator_master
         close_loop_values:
-            - {p: 0.09, i: 0.0, d: 0, f: 0.0, i_zone: 0, closed_loop_peak_output: 1.0}
-            - {p: 0.25, i: 0.0005, d: 0, f: 0.58, i_zone: 4096, closed_loop_peak_output: 1.0}
-
-        # TODO : tuning
-        motion_cruise_velocity: 0.25
-        motion_acceleration: 0.4
+            - {p: 0.035, i: 0.00001, d: 0.35, f: 0.24, i_zone: 1900, closed_loop_peak_output: 1.0}
+            - {p: 0.25, i: 0.0, d: 0, f: 0.58, i_zone: 4096, closed_loop_peak_output: 1.0}
               
         sensor_phase: True 
         invert_output: False
@@ -50,7 +52,7 @@ elevator_controller:
         neutral_deadband: 0.001
 
         dynamic_reconfigure: true
-
+        motion_s_curve_strength: 0 
     elevator_follower1: 
         joint: elevator_follower1
         sensor_phase: True 
@@ -67,3 +69,4 @@ elevator_controller:
     elevator_follower3: 
         joint: elevator_follower3
         invert_output: True
+

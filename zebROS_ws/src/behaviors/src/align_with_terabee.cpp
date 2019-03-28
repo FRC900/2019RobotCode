@@ -8,21 +8,35 @@
 
 #define NUM_SENSORS 8
 
+// TODO - if we redid the interface to this to match the interface for a PID
+// controller it would be a lot easier to make the align server code common
+// between various modes. That is, make a debug, enable, etc message and populate
+// them as-if this were the standard ROS PID node.  This would remove the need
+// for special cases in the align server itself
+// TODO - also split up into two separate align with terabee nodes - one for
+// cargo, one for hatch?  If not, have two interfaces matching PID controllers,
+// one for cargo, one for hatch
+
 std::vector<double> sensors_distances;
 bool publish = false;
 bool publish_last = false;
 
 const double default_min_dist_ = 100;
 double min_dist = default_min_dist_;
+double min_dist_cargo = default_min_dist_;
 
 void multiflexCB(const teraranger_array::RangeArray& msg)
 {
     min_dist = default_min_dist_;
+	min_dist_cargo = default_min_dist_;
 	for(int i = 0; i < NUM_SENSORS; i++)
 	{
 		if(msg.ranges[i].range == msg.ranges[i].range)
 		{
 			sensors_distances[i] = msg.ranges[i].range;
+			if(i <= 1) {
+				min_dist_cargo = std::min(min_dist_cargo, static_cast<double>(msg.ranges[i].range));
+			}
 			if(i >= 2) {
 				min_dist = std::min(min_dist, static_cast<double>(msg.ranges[i].range));
 			}
@@ -40,6 +54,7 @@ bool startStopAlign(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response
 	publish = req.data;
 	res.success = true;
 	//ROS_INFO_STREAM("running/stopping align with terabee " << publish);
+	// TODO : should probably return true here if there's no error
 	return 0;
 }
 
@@ -73,8 +88,10 @@ int main(int argc, char ** argv)
 
 	sensors_distances.resize(NUM_SENSORS);
 
-	ros::Publisher distance_setpoint_pub = n.advertise<std_msgs::Float64>("distance_pid/setpoint", 1);
-	ros::Publisher distance_state_pub = n.advertise<std_msgs::Float64>("distance_pid/state", 1);
+	ros::Publisher hatch_panel_distance_setpoint_pub = n.advertise<std_msgs::Float64>("hatch_panel_distance_pid/setpoint", 1);
+	ros::Publisher hatch_panel_distance_state_pub = n.advertise<std_msgs::Float64>("hatch_panel_distance_pid/state", 1);
+	ros::Publisher cargo_distance_state_pub = n.advertise<std_msgs::Float64>("cargo_distance_pid/state", 1);
+	ros::Publisher cargo_distance_setpoint_pub = n.advertise<std_msgs::Float64>("cargo_distance_pid/setpoint", 1);
 	ros::Publisher cargo_setpoint_pub = n.advertise<std_msgs::Float64>("cargo_pid/setpoint", 1);
 	ros::Publisher cargo_state_pub = n.advertise<std_msgs::Float64>("cargo_pid/state", 1);
 	ros::Publisher y_command_pub = n.advertise<std_msgs::Float64>("align_with_terabee/y_command", 1);
@@ -99,7 +116,7 @@ int main(int argc, char ** argv)
 	while(ros::ok())
 	{
 		bool aligned = false;
-		if(sensors_distances[0] == 0.0 && sensors_distances[1] == 0.0 && sensors_distances[2] == 0.0 && sensors_distances[3] == 0.0 && sensors_distances[4] == 0.0)
+		if(sensors_distances[0] == 0.0 && sensors_distances[1] == 0.0)
 		{
 			ROS_INFO_STREAM_THROTTLE(2, "No data is being received from the Terabee sensors. Skipping this message");
 			ros::spinOnce();
@@ -107,15 +124,21 @@ int main(int argc, char ** argv)
 			continue;
 		}
 
-		ROS_ERROR_STREAM_THROTTLE(0.25, "min_dist: " << min_dist);
+		//ROS_ERROR_STREAM_THROTTLE(0.25, "min_dist: " << min_dist);
 
 		//deal with distance PID first
         if(fabs(min_dist) < default_min_dist_) {
             std_msgs::Float64 distance_state_msg;
             distance_state_msg.data = min_dist - distance_target;
-            distance_state_pub.publish(distance_state_msg);
-            distance_setpoint_pub.publish(distance_setpoint_msg);
+            hatch_panel_distance_state_pub.publish(distance_state_msg);
+            hatch_panel_distance_setpoint_pub.publish(distance_setpoint_msg);
         }
+		if(fabs(min_dist_cargo) < default_min_dist_) {
+            std_msgs::Float64 distance_state_msg;
+            distance_state_msg.data = distance_target - min_dist_cargo;
+            cargo_distance_state_pub.publish(distance_state_msg);
+            cargo_distance_setpoint_pub.publish(distance_setpoint_msg);
+		}
 
 		//deal with cargo PID next
 		std_msgs::Float64 cargo_state_msg;
@@ -148,11 +171,11 @@ int main(int argc, char ** argv)
 				ternary_distances += pow(10.0, i - 2)*2;
 			else
 			{
-				ROS_INFO_STREAM_THROTTLE(1,"index " << i << " is very confused " << sensors_distances[i]);
+				//ROS_INFO_STREAM_THROTTLE(1,"index " << i << " is very confused " << sensors_distances[i]);
 			}
 		}
 		//ROS_INFO_STREAM("minimum_distance = " << min_dist);
-		ROS_WARN_STREAM_THROTTLE(0.5, "ternary_distances: " << ternary_distances);
+		//ROS_WARN_STREAM_THROTTLE(0.5, "ternary_distances: " << ternary_distances);
 
 		bool cutout_found = false;
 		switch(ternary_distances) {
@@ -288,7 +311,7 @@ int main(int argc, char ** argv)
 
 		if(!cutout_found)
 		{
-			ROS_INFO_STREAM_THROTTLE(.25, "cutout not found; can't align");
+			//ROS_INFO_STREAM_THROTTLE(.25, "cutout not found; can't align");
 			//Don't publish anything when not found to let previous commands drift the bot a bit
 			//y_msg.data= 0;
 		}

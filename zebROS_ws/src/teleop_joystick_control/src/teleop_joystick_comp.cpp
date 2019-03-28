@@ -24,11 +24,11 @@
 #include "behaviors/FinishActionlib.h"
 
 #include "std_srvs/SetBool.h"
+#include "std_srvs/Empty.h"
 #include <vector>
 #include "teleop_joystick_control/RobotOrient.h"
 
 #include "panel_intake_controller/PanelIntakeSrv.h"
-#include "cargo_outtake_controller/CargoOuttakeSrv.h"
 #include "cargo_intake_controller/CargoIntakeSrv.h"
 
 #include "dynamic_reconfigure_wrapper/dynamic_reconfigure_wrapper.h"
@@ -43,13 +43,14 @@ int cargo_limit_switch_false_count = 0;
 int panel_limit_switch_false_count = 0;
 bool panel_push_extend = false;
 
-
 const int climber_num_steps = 3;
 const int elevator_num_setpoints = 4;
 
 bool robot_orient = false;
 double offset_angle = 0;
 
+double max_speed;
+double max_rot;
 
 std::vector <frc_msgs::JoystickState> joystick_states_array;
 std::vector <std::string> topic_array;
@@ -58,13 +59,7 @@ teleop_joystick_control::TeleopJoystickCompConfig config;
 
 
 // 500 msec to go from full back to full forward
-const double drive_rate_limit_time = 500.;
-rate_limiter::RateLimiter left_stick_x_rate_limit(-1.0, 1.0, drive_rate_limit_time);
-rate_limiter::RateLimiter left_stick_y_rate_limit(-1.0, 1.0, drive_rate_limit_time);
-rate_limiter::RateLimiter right_stick_x_rate_limit(-1.0, 1.0, drive_rate_limit_time);
-rate_limiter::RateLimiter right_stick_y_rate_limit(-1.0, 1.0, drive_rate_limit_time);
-rate_limiter::RateLimiter left_trigger_rate_limit(-1.0, 1.0, drive_rate_limit_time);
-rate_limiter::RateLimiter right_trigger_rate_limit(-1.0, 1.0, drive_rate_limit_time);
+constexpr double drive_rate_limit_time = 500.;
 
 ros::Publisher elevator_setpoint;
 ros::Publisher JoystickRobotVel;
@@ -142,16 +137,13 @@ bool orientCallback(teleop_joystick_control::RobotOrient::Request& req,
 }
 
 void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& event)
-
 {
-	int i = 0;
-
 	const ros::M_string &header = event.getConnectionHeader();
+	const std::string topic = header.at("topic");
 
-	std::string topic = header.at("topic");
-
+	size_t i = 0;
 	//Identifies the incoming message as the correct joystick based on the topic the message was recieved from
-	for(bool msg_assign = false; msg_assign == false; i++)
+	for(bool msg_assign = false; (msg_assign == false) && (i < topic_array.size()); i++)
 	{
 		if(topic == topic_array[i])
 		{
@@ -159,12 +151,6 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			msg_assign = true;
 		}
 	}
-
-
-    //Publish elevator setpoinut
-    std_msgs::Int8 elevator_setpoint_msg;
-    elevator_setpoint_msg.data = elevator_cur_setpoint_idx;
-    elevator_setpoint.publish(elevator_setpoint_msg);
 
 	//Only do this for the first joystick
 	if(i == 1)
@@ -175,17 +161,26 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		double rightStickX = joystick_states_array[0].rightStickX;
 		double rightStickY = joystick_states_array[0].rightStickY;
 
-		leftStickX = left_stick_x_rate_limit.applyLimit(leftStickX);
-		leftStickY = left_stick_y_rate_limit.applyLimit(leftStickY);
-		rightStickX = right_stick_x_rate_limit.applyLimit(rightStickX);
-		rightStickY = right_stick_y_rate_limit.applyLimit(rightStickY);
+		// Defer init until the first time these are used - makes sure the
+		// initial time is reasonable
+		static std::unique_ptr<rate_limiter::RateLimiter> left_stick_x_rate_limit = std::make_unique<rate_limiter::RateLimiter>(-1.0, 1.0, drive_rate_limit_time);
+		static std::unique_ptr<rate_limiter::RateLimiter> left_stick_y_rate_limit = std::make_unique<rate_limiter::RateLimiter>(-1.0, 1.0, drive_rate_limit_time);
+		static std::unique_ptr<rate_limiter::RateLimiter> right_stick_x_rate_limit = std::make_unique<rate_limiter::RateLimiter>(-1.0, 1.0, drive_rate_limit_time);
+		static std::unique_ptr<rate_limiter::RateLimiter> right_stick_y_rate_limit = std::make_unique<rate_limiter::RateLimiter>(-1.0, 1.0, drive_rate_limit_time);
+		static std::unique_ptr<rate_limiter::RateLimiter> left_trigger_rate_limit = std::make_unique<rate_limiter::RateLimiter>(-1.0, 1.0, drive_rate_limit_time);
+		static std::unique_ptr<rate_limiter::RateLimiter> right_trigger_rate_limit = std::make_unique<rate_limiter::RateLimiter>(-1.0, 1.0, drive_rate_limit_time);
+
+		leftStickX = left_stick_x_rate_limit->applyLimit(leftStickX);
+		leftStickY = left_stick_y_rate_limit->applyLimit(leftStickY);
+		rightStickX = right_stick_x_rate_limit->applyLimit(rightStickX);
+		rightStickY = right_stick_y_rate_limit->applyLimit(rightStickY);
 
 		dead_zone_check(leftStickX, leftStickY);
 		dead_zone_check(rightStickX, rightStickY);
 
-		leftStickX =  pow(fabs(leftStickX), config.joystick_pow) * config.max_speed;
-		leftStickY =  pow(fabs(leftStickY), config.joystick_pow) * config.max_speed;
-		double rotation = pow(fabs(rightStickX), config.rotation_pow) * config.max_rot;
+		leftStickX =  pow(fabs(leftStickX), config.joystick_pow) * max_speed;
+		leftStickY =  pow(fabs(leftStickY), config.joystick_pow) * max_speed;
+		double rotation = pow(fabs(rightStickX), config.rotation_pow) * max_rot;
 
 		leftStickX = copysign(leftStickX, joystick_states_array[0].leftStickX);
 		leftStickY = copysign(leftStickY, -joystick_states_array[0].leftStickY);
@@ -193,8 +188,8 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 
 		// TODO : dead-zone for rotation?
 		// TODO : test rate limiting rotation rather than individual inputs, either pre or post scaling?
-		//double triggerLeft = left_trigger_rate_limit.applyLmit(joystick_states_array[0].leftTrigger);
-		//double triggerRight = right_trigger_rate_limit.applyLimit(joystick_states_array[0].rightTrigger);
+		//double triggerLeft = left_trigger_rate_limit->applyLmit(joystick_states_array[0].leftTrigger);
+		//double triggerRight = right_trigger_rate_limit->applyLimit(joystick_states_array[0].rightTrigger);
 
 		static bool sendRobotZero = false;
 		if (leftStickX == 0.0 && leftStickY == 0.0 && rotation == 0.0)
@@ -288,6 +283,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		//Joystick1: buttonB
 		if(joystick_states_array[0].buttonBPress)
 		{
+			ROS_INFO_STREAM("Joystick1: buttonBPress");
 			preemptActionlibServers();
 			ROS_INFO_STREAM("Joystick1: Place Panel");
 			behaviors::PlaceGoal goal;
@@ -295,7 +291,6 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
             goal.end_setpoint_index = INTAKE;
 			outtake_hatch_panel_ac->sendGoal(goal);
 			elevator_cur_setpoint_idx = 0;
-			ROS_WARN("elevator current setpoint index %d", elevator_cur_setpoint_idx);
 			/*
 			preemptActionlibServers();
 			behaviors::AlignGoal goal;
@@ -303,14 +298,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			align_ac->sendGoal(goal);
 			*/
 		}
-			/*
-		ROS_INFO_STREAM("Joystick1: buttonBPress - Cargo Outtake");
-		preemptActionlibServers();
-		behaviors::PlaceGoal goal;
-		goal.setpoint_index = CARGO_SHIP;
-		outtake_cargo_ac->sendGoal(goal);
-		}
-		if(joystick_states_array[0].buttonBButton)
+		/*if(joystick_states_array[0].buttonBButton)
 		{
 		ROS_INFO_THROTTLE(1, "buttonBButton");
 		std_srvs::SetBool msg;
@@ -355,20 +343,11 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			*/
 		}
 		//Joystick1: buttonY
-		/*if(joystick_states_array[0].buttonYPress)
-		  {
-		  ROS_INFO_STREAM("Joystick1: buttonYPress - Panel Outtake");
-		  preemptActionlibServers();
-		  behaviors::PlaceGoal goal;
-		  goal.setpoint_index = CARGO_SHIP;
-		  outtake_hatch_panel_ac->sendGoal(goal);
-		  }
-		  */
-		  if(joystick_states_array[0].buttonYButton)
-		  {
+		if(joystick_states_array[0].buttonYPress)
+		{
+			ROS_INFO_STREAM("joystick1: buttonYPress");
 			preemptActionlibServers();
-			//If we don't have a panel, intake one
-			ROS_INFO_STREAM("Joystick1: Intake Panel");
+
 			behaviors::IntakeGoal goal;
 			intake_hatch_panel_ac->sendGoal(goal);
 			  /*
@@ -415,6 +394,17 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		*/
 		if(joystick_states_array[0].bumperLeftPress)
 		{
+            //TODO get rid of this testing code
+            //If we have a cargo, outtake it
+			preemptActionlibServers();
+            ROS_INFO_STREAM("Joystick1: Place Cargo");
+            behaviors::PlaceGoal goal;
+            goal.setpoint_index = elevator_cur_setpoint_idx;
+			goal.end_setpoint_index = INTAKE;
+            outtake_cargo_ac->sendGoal(goal);
+            elevator_cur_setpoint_idx = 0;
+            ROS_WARN("elevator current setpoint index %d", elevator_cur_setpoint_idx);
+            /* NOOT NOOT TOGGLE
 			if (panel_push_extend)
 			{
 				ROS_INFO_STREAM("Toggling to clamped and not extended");
@@ -433,46 +423,67 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 				if (!manual_server_panelIn.call(srv))
 					ROS_ERROR("teleop call to manual_server_panelIn failed for bumperLeftPress");
 			}
+            */
 		}
 		if(joystick_states_array[0].bumperLeftButton)
 		{
-			ROS_INFO_THROTTLE(1, "bumperLeftButton");
 		}
 		if(joystick_states_array[0].bumperLeftRelease)
 		{
 			ROS_INFO_STREAM("Joystick1: bumperLeftRelease");
+			outtake_cargo_ac->cancelGoalsAtAndBeforeTime(ros::Time::now());
 		}
 		//Joystick1: bumperRight
-		//if(joystick_states_array[0].bumperRightPress)
-		//{
-		//	ROS_INFO_STREAM("Joystick1: bumperRightPress");
-		//	preemptActionlibServers();
-		//	if(panel_limit_switch_true_count > config.limit_switch_debounce_iterations)
-		//	{
-		//		//If we have a panel, outtake it
-		//		ROS_INFO_STREAM("Joystick1: Place Panel");
-		//		behaviors::PlaceGoal goal;
-		//		goal.setpoint_index = elevator_cur_setpoint_idx;
-		//		outtake_hatch_panel_ac->sendGoal(goal);
-		//		elevator_cur_setpoint_idx = 0;
-		//		ROS_WARN("elevator current setpoint index %d", elevator_cur_setpoint_idx);
-		//	}
-		//	else
-		//	{
-		//		//If we don't have a panel, intake one
-		//		ROS_INFO_STREAM("Joystick1: Intake Panel");
-		//		behaviors::IntakeGoal goal;
-		//		intake_hatch_panel_ac->sendGoal(goal);
-
-		//	}
-		//}
+		if(joystick_states_array[0].bumperRightPress)
+		{
+            //TODO get rid of this testing cde
+            //If we don't have a cargo, intake one
+			preemptActionlibServers();
+            ROS_INFO_STREAM("Joystick1: Intake Cargo");
+            behaviors::IntakeGoal goal;
+            intake_cargo_ac->sendGoal(goal);
+            /*
+			if (intake_arm_down)
+			{
+				ROS_INFO_STREAM("Toggling to roller not extended");
+				cargo_intake_controller::CargoIntakeSrv srv;
+				srv.request.roller_extend = false;
+				if (!manual_server_cargoIn.call(srv))
+					ROS_ERROR("teleop call to manual_server_cargoIn failed for bumperRightPress");
+			}
+			else
+			{
+				ROS_INFO_STREAM("Toggling to roller extended");
+				cargo_intake_controller::CargoIntakeSrv srv;
+				srv.request.roller_extend = true;
+				if (!manual_server_cargoIn.call(srv))
+					ROS_ERROR("teleop call to manual_server_cargoIn failed for bumperRightPress");
+			}
+            */
+		}
 		if(joystick_states_array[0].bumperRightButton)
 		{
-			ROS_INFO_THROTTLE(1, "bumperRightButton");
 		}
 		if(joystick_states_array[0].bumperRightRelease)
 		{
+			//forces right bumper to be held for intaking to continue
+			//TODO test this brings arm up instantly
+			intake_cargo_ac->cancelGoalsAtAndBeforeTime(ros::Time::now());
 			ROS_INFO_STREAM("Joystick1: bumperRightRelease");
+
+		}
+		if(joystick_states_array[0].rightTrigger >= 0.5)
+		{
+			max_speed = config.max_speed_slow;
+			max_rot = config.max_rot_slow;
+		}
+		else
+		{
+			max_speed = config.max_speed;
+			max_rot = config.max_rot;
+		}
+		if(joystick_states_array[0].leftTrigger >= 0.5)
+		{
 		}
 		//Joystick1: directionLeft
 		if(joystick_states_array[0].directionLeftPress)
@@ -542,7 +553,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		{
 			//Abort the climb and lower back down
 			ROS_WARN("Joystick1: Preempting Climber Server");
-			climber_ac->cancelGoalsAtAndBeforeTime(ros::Time::now());
+			climber_ac->cancelAllGoals();
 			climber_cur_step = 0;
 		}
 		if(joystick_states_array[0].directionDownButton)
@@ -567,11 +578,11 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		    msg.request.push_extend = ManualTogglePush;
 			if (!manual_server_panelIn.call(msg))
 				ROS_ERROR("teleop call to manual_server_panelIn failed for buttonAPress");
-			cargo_outtake_controller::CargoOuttakeSrv msg2;
-			msg2.request.kicker_in = ManualToggleKicker;
-			msg2.request.clamp_release = ManualToggleClamp;
-			if (!manual_server_cargoOut.call(msg2))
-				ROS_ERROR("teleop call to manual_server_cargoOut failed for buttonAPress");
+			//cargo_outtake_controller::CargoOuttakeSrv msg2;
+			//msg2.request.kicker_in = ManualToggleKicker;
+			//msg2.request.clamp_release = ManualToggleClamp;
+			//if (!manual_server_cargoOut.call(msg2))
+			//	ROS_ERROR("teleop call to manual_server_cargoOut failed for buttonAPress");
 		}
 		/*  if(joystick_states_array[1].buttonAButton)
 		  {
@@ -588,6 +599,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		  run_align.call(msg);
 		  }*/
 		//Joystick2: buttonB
+		/* TODO this may be causing weird issues
 		if(joystick_states_array[1].buttonBPress)
 		{
 			ManualTogglePush = !ManualTogglePush;
@@ -597,7 +609,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			msg.request.push_extend = ManualTogglePush;
 			if (!manual_server_panelIn.call(msg))
 				ROS_ERROR("teleop call to manual_server_panelIn failed for buttonBPress");
-		}
+		} */
 		/*if(joystick_states_array[1].buttonBButton)
 		{
 		ROS_INFO_THROTTLE(1, "buttonBButton");
@@ -615,13 +627,13 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		//Joystick2: buttonX
 		if(joystick_states_array[1].buttonXPress)
 		{
-			ManualToggleKicker = !ManualToggleKicker;
-			ROS_INFO_STREAM("Joystick2: buttonXPress");
-			cargo_outtake_controller::CargoOuttakeSrv msg;
-			msg.request.kicker_in = ManualToggleKicker;
-			msg.request.clamp_release = ManualToggleClamp;
-			if (!manual_server_cargoOut.call(msg))
-				ROS_ERROR("teleop call to manual_server_cargoOut failed for buttonXPress");
+			//ManualToggleKicker = !ManualToggleKicker;
+			//ROS_INFO_STREAM("Joystick2: buttonXPress");
+			//cargo_outtake_controller::CargoOuttakeSrv msg;
+			//msg.request.kicker_in = ManualToggleKicker;
+			//msg.request.clamp_release = ManualToggleClamp;
+			//if (!manual_server_cargoOut.call(msg))
+			//	ROS_ERROR("teleop call to manual_server_cargoOut failed for buttonXPress");
 		}
 		/*if(joystick_states_array[1].buttonXButton)
 		{
@@ -638,6 +650,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		run_align.call(msg);
 		}*/
 		//Joystick2: buttonY
+		/* TODO this may be causing weird issues
 		if(joystick_states_array[1].buttonYPress)
 		{
 			ManualToggleArm = !ManualToggleArm;
@@ -647,7 +660,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			msg.request.power = 0.0;
 			if (!manual_server_cargoIn.call(msg))
 				ROS_ERROR("teleop call to manual_server_cargoIn failed for buttonYPress");
-		}
+		} */
 /*	if(joystick_states_array[1].buttonYButton)
 	{
 		ROS_INFO_THROTTLE(1, "buttonYButton");
@@ -796,21 +809,25 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 	}*/
 	}
 
+    //Publish elevator setpoinut
+    std_msgs::Int8 elevator_setpoint_msg;
+    elevator_setpoint_msg.data = elevator_cur_setpoint_idx;
+    elevator_setpoint.publish(elevator_setpoint_msg);
 }
 
 void jointStateCallback(const sensor_msgs::JointState &joint_state)
 {
 	//get index of limit_switch sensor for this actionlib server
-	static size_t cargo_limit_switch_idx = std::numeric_limits<size_t>::max();
+	static size_t cargo_linebreak_idx = std::numeric_limits<size_t>::max();
 	static size_t panel_limit_switch_1_idx = std::numeric_limits<size_t>::max();
 	static size_t panel_limit_switch_2_idx = std::numeric_limits<size_t>::max();
 	static size_t panel_push_extend_idx = std::numeric_limits<size_t>::max();
-	if (cargo_limit_switch_idx >= joint_state.name.size() || panel_limit_switch_1_idx >= joint_state.name.size() || panel_limit_switch_2_idx >= joint_state.name.size())
+	if (cargo_linebreak_idx >= joint_state.name.size() || panel_limit_switch_1_idx >= joint_state.name.size() || panel_limit_switch_2_idx >= joint_state.name.size())
 	{
 		for (size_t i = 0; i < joint_state.name.size(); i++)
 		{
-			if (joint_state.name[i] == "cargo_intake_limit_switch_1")
-				cargo_limit_switch_idx = i;
+			if (joint_state.name[i] == "cargo_intake_linebreak_1")
+				cargo_linebreak_idx = i;
 			if (joint_state.name[i] == "panel_intake_limit_switch_1")
 				panel_limit_switch_1_idx = i;
 			if (joint_state.name[i] == "panel_intake_limit_switch_2")
@@ -821,9 +838,9 @@ void jointStateCallback(const sensor_msgs::JointState &joint_state)
 	}
 
 	//update limit_switch counts based on the value of the limit_switch sensor
-	if (cargo_limit_switch_idx < joint_state.position.size())
+	if (cargo_linebreak_idx < joint_state.position.size())
 	{
-		bool cargo_limit_switch_true = (joint_state.position[cargo_limit_switch_idx] != 0);
+		bool cargo_limit_switch_true = (joint_state.position[cargo_linebreak_idx] != 0);
 		if(cargo_limit_switch_true)
 		{
 			cargo_limit_switch_true_count += 1;
@@ -904,14 +921,29 @@ int main(int argc, char **argv)
 	{
 		ROS_ERROR("Could not read limit_switch_debounce_iterations in teleop_joystick_comp");
 	}
-	if(!n_swerve_params.getParam("max_speed", config.max_speed))
+	if(!n_params.getParam("linebreak_debounce_iterations", config.linebreak_debounce_iterations))
+	{
+		ROS_ERROR("Could not read linebreak_debounce_iterations in teleop_joystick_comp");
+	}
+	if(!n_params.getParam("max_speed", config.max_speed))
 	{
 		ROS_ERROR("Could not read max_speed in teleop_joystick_comp");
+	}
+	if(!n_params.getParam("max_speed_slow", config.max_speed_slow))
+	{
+		ROS_ERROR("Could not read max_speed_slow in teleop_joystick_comp");
 	}
 	if(!n_params.getParam("max_rot", config.max_rot))
 	{
 		ROS_ERROR("Could not read max_rot in teleop_joystick_comp");
 	}
+	if(!n_params.getParam("max_rot_slow", config.max_rot_slow))
+	{
+		ROS_ERROR("Could not read max_rot_slow in teleop_joystick_comp");
+	}
+
+	max_speed = config.max_speed;
+	max_rot = config.max_rot;
 
 	std::vector <ros::Subscriber> subscriber_array;
     navX_angle = M_PI / 2.;
@@ -952,12 +984,13 @@ int main(int argc, char **argv)
 	align_ac = std::make_shared<actionlib::SimpleActionClient<behaviors::AlignAction>>("/align_server/align_server", true);
 	elevator_ac = std::make_shared<actionlib::SimpleActionClient<behaviors::ElevatorAction>>("/elevator/elevator_server", true);
 
+	//initialize servers
 	run_align = n.serviceClient<std_srvs::SetBool>("/align_with_terabee/run_align");
 	finish_hatch_panel_outtake = n.serviceClient<behaviors::FinishActionlib>("/hatch_outtake/finish_actionlib");
 	finish_hatch_panel_intake = n.serviceClient<behaviors::FinishActionlib>("/hatch_intake/finish_actionlib");
 
 	manual_server_panelIn = n.serviceClient<panel_intake_controller::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command");
-	manual_server_cargoOut = n.serviceClient<cargo_outtake_controller::CargoOuttakeSrv>("/cargo_outtake_controller/cargo_outtake_command");
+	//manual_server_cargoOut = n.serviceClient<cargo_outtake_controller::CargoOuttakeSrv>("/cargo_outtake_controller/cargo_outtake_command");
 	manual_server_cargoIn = n.serviceClient<cargo_intake_controller::CargoIntakeSrv>("/cargo_intake_controller/cargo_intake_command");
 
 	cargo_pid = n.advertise<std_msgs::Bool>("/align_server/cargo_pid/pid_enable", 1);
