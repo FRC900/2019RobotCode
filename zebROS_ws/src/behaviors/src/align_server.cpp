@@ -16,7 +16,6 @@ double orient_timeout;
 double orient_error_threshold;
 double x_error_threshold;
 double cargo_error_threshold;
-bool end_align = false;
 
 
 // TODO
