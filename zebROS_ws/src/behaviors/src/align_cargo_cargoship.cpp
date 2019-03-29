@@ -1,8 +1,8 @@
 #include "behaviors/base_align_server.h"
 
-class AlignHatchPanelAction : public BaseAlignAction {
+class AlignCargoCargoshipAction : public BaseAlignAction {
 	public:
-		AlignHatchPanelAction(const std::string &name,
+		AlignCargoCargoshipAction(const std::string &name,
 							  const std::string &enable_align_topic_,
 							  const std::string &enable_orient_topic_,
 							  const std::string &enable_x_topic_,
@@ -37,12 +37,11 @@ bool debug;
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "align_hatch_server");
+	ros::init(argc, argv, "align_cargo_cargoship_server");
 
 	ros::NodeHandle n;
 	ros::NodeHandle n_private_params("~");
 	ros::NodeHandle n_params(n, "align_server_params");
-    ros::NodeHandle n_panel_params(n, "actionlib_hatch_panel_intake_params");
 
 	if(!n_params.getParam("align_timeout", align_timeout))
 		ROS_ERROR_STREAM("Could not read align_timeout in align_server");
@@ -60,15 +59,15 @@ int main(int argc, char** argv)
 		ROS_ERROR_STREAM("Could not read cargo_error_threshold in align_server");
 
 	if(!n_private_params.getParam("debug", debug))
-		ROS_ERROR_STREAM("Could not read debug in align_server");
+		ROS_ERROR_STREAM("Could not read debug in align_cargo_cargoship_server");
 
-	AlignHatchPanelAction align_hatch_action("align_hatch_server",
-			"align_hatch_pid/pid_enable",
+	AlignCargoCargoshipAction align_cargo_cargoship_action("align_cargo_cargoship_server",
+			"align_cargo_cargoship_pid/pid_enable",
 			"navX_pid/pid_enable",
-			"hatch_panel_distance_pid/pid_enable",
+			"cargo_distance_pid/pid_enable",
 			"align_with_camera/enable_y_pub",
 			"navX_pid/pid_debug",
-			"hatch_panel_distance_pid/pid_debug",
+			"cargo_distance_pid/pid_debug",
 			"align_with_camera/y_aligned");
 
 	ros::spin();
