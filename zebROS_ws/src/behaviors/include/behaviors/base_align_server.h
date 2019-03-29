@@ -131,11 +131,10 @@ class BaseAlignAction {
 			return timeout_var;
 		}
 		bool check_preempted() {
-			bool preempted_var = false;
 			if(as_.isPreemptRequested()) {
-				preempted_var = true;
+				return true;
 			}
-			return preempted_var;
+			return false;
 		}
 
 		//Default error callbacks for pid node
