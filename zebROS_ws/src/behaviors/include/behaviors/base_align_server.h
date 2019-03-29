@@ -9,6 +9,7 @@
 #include "behaviors/enumerated_elevator_indices.h"
 #include "actionlib/server/simple_action_server.h"
 #include "actionlib/client/simple_action_client.h"
+#include "std_srvs/SetBool.h"
 
 // TODO : These probably need to be moved into the base class, along
 // with some defaults and a way to set them
@@ -21,6 +22,7 @@ extern double orient_error_threshold;
 extern double x_error_threshold;
 extern double y_error_threshold;
 
+extern bool end_align = false;
 extern bool debug;
 
 // TODO
@@ -75,6 +77,8 @@ class BaseAlignAction {
 
         ros::ServiceClient BrakeSrv_;
 
+		ros::ServiceServer finish_align_;
+
 		bool aligned_ = false;
 		bool orient_aligned_ = false;
 		bool x_aligned_ = false;
@@ -115,11 +119,30 @@ class BaseAlignAction {
             std::map<std::string, std::string> service_connection_header;
             service_connection_header["tcp_nodelay"] = "1";
 
+			finish_align_ = nh_.advertiseService("finish_align", &BaseAlignAction::finishAlignServer, this);
+
 			BrakeSrv_ = nh_.serviceClient<std_srvs::Empty>("/frcrobot_jetson/swerve_drive_controller/brake", false, service_connection_header);
 		}
 
 		~BaseAlignAction(void)
 		{
+		}
+
+		bool finishAlignServer(std_srvs::SetBool::Request &req,
+						std_srvs::SetBool::Response &res)
+		{
+			end_align = req.data;
+			return true;
+		}
+
+		bool pressOrHold(double start_time)
+		{
+			bool button_hold = true;
+			if(end_align && ((ros::Time::now().toSec() - start_time) < 0.25))
+			{
+				button_hold = false;
+			}
+			return button_hold;
 		}
 
 		//function to check for preempts and timeouts
@@ -193,7 +216,7 @@ class BaseAlignAction {
 
 			//Wait to be aligned
 			if(wait_for_alignment) {
-				while(ros::ok() && !x_aligned_ && !preempted_ && !x_timed_out_) {
+				while(ros::ok() && !x_aligned_ && !preempted_ && !x_timed_out_ && !pressOrHold(start_time_)) {
 					enable_align();
 					x_timed_out_ = check_timeout(start_time_, timeout);
 					preempted_ = check_preempted();
@@ -214,7 +237,7 @@ class BaseAlignAction {
 
 			//Wait to be aligned
 			if(wait_for_alignment) {
-				while(ros::ok() && !y_aligned_ && !preempted_ && !y_timed_out_) {
+				while(ros::ok() && !y_aligned_ && !preempted_ && !y_timed_out_ && !pressOrHold(start_time_)) {
 					enable_align();
 					y_timed_out_ = check_timeout(start_time_, timeout);
 					preempted_ = check_preempted();
