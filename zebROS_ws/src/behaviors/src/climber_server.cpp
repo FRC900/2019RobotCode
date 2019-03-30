@@ -16,9 +16,11 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include "cargo_intake_controller/CargoIntakeSrv.h"
+#include <talon_state_controller/TalonState.h>
 
 //define global variables that will be defined based on config values
 
+//durations and timeouts
 double elevator_deploy_timeout;
 double elevator_climb_timeout;
 double running_forward_timeout;
@@ -47,11 +49,13 @@ class ClimbAction {
 		//create subscribers to get data
 		ros::Subscriber match_data_sub_;
 		ros::Subscriber navX_sub_;
+		ros::Subscriber talon_states_sub_;
 
 		// Data from subscribers
 		double match_time_remaining_;
 		double navX_roll_;
 		double navX_pitch_;
+		double elev_cur_position_;
 
 		std::atomic<double> cmd_vel_forward_speed_;
 		std::atomic<bool> stopped_;
@@ -288,7 +292,6 @@ class ClimbAction {
 				}
 				else
 				{
-
 					//retract climber foot to make robot fall ----------------------------------------------------
 					if(!preempted && !timed_out && ros::ok())
 					{
@@ -348,7 +351,7 @@ class ClimbAction {
 						preempted = true;
 					}
 
-					//call the elevator actionlib server
+					//pull the climber leg up a bit
 					//define the goal to send
 					behaviors::ElevatorGoal elevator_goal;
 					elevator_goal.setpoint_index = ELEVATOR_CLIMB_LOW;
@@ -465,6 +468,27 @@ class ClimbAction {
 				navX_pitch_ = pitch;
 		}
 
+
+		void talonStateCallback(const talon_state_controller::TalonState &talon_state)
+		{
+			static size_t elevator_master_idx = std::numeric_limits<size_t>::max();
+			if (elevator_master_idx >= talon_state.name.size())
+			{
+				for (size_t i = 0; i < talon_state.name.size(); i++)
+				{
+					if (talon_state.name[i] == "elevator_master")
+					{
+						elevator_master_idx = i;
+						break;
+					}
+				}
+			}
+			else {
+				elev_cur_position_ = talon_state.position[elevator_master_idx];
+			}
+		}
+
+
 		void matchStateCallback(const frc_msgs::MatchSpecificData &msg)
 		{
 			match_time_remaining_ = msg.matchTimeRemaining;
@@ -491,6 +515,7 @@ class ClimbAction {
 		climber_engage_client_ = nh_.serviceClient<std_srvs::SetBool>("/frcrobot_jetson/climber_controller/climber_release_endgame", false, service_connection_header);
 
 		navX_sub_ = nh_.subscribe("/frcrobot_rio/navx_mxp", 1, &ClimbAction::navXCallback, this);
+		talon_states_sub_ = nh_.subscribe("/frcrobot_jetson/talon_states",1,&ClimbAction::talonStateCallback, this);
 
 		cargo_intake_controller_client_ = nh_.serviceClient<cargo_intake_controller::CargoIntakeSrv>("/frcrobot_jetson/cargo_intake_controller/cargo_intake_command", false, service_connection_header);
 
@@ -551,6 +576,12 @@ int main(int argc, char** argv) {
 	{
 		ROS_ERROR("Could not read match_time_lock in climber_server");
 		match_time_lock = 135;
+	}
+
+	if (!n_climb_params.getParam("pull_leg_up_pause_time", pull_leg_up_pause_time))
+	{
+		ROS_ERROR("Could not read pull_leg_up_pause_time in climber_server");
+		pull_leg_up_pause_time = 0.5;
 	}
 
 	if (!n_climb_params.getParam("drive_forward_speed", drive_forward_speed))

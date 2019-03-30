@@ -1,4 +1,4 @@
-# TODO - these are all wrong
+# TODO - these are all wrong... or not?
 climber_server:
     deploy_timeout: 8.0
     climb_timeout: 8.0
