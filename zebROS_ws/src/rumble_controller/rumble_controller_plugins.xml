@@ -1,0 +1,7 @@
+<library path="lib/librumble_controller">
+	<class name="rumble_controller/RumbleController" type="rumble_controller::RumbleController" base_class_type="controller_interface::ControllerBase">
+		<description>
+			This exists
+		</description>
+	</class>
+</library>

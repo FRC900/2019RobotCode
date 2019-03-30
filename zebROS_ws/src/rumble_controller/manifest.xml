@@ -1,0 +1,14 @@
+<package>
+  <description brief="rumble_controller">
+
+     rumble_controller
+
+  </description>
+  <author>ubuntu</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rumble_controller</url>
+
+</package>
+
+
