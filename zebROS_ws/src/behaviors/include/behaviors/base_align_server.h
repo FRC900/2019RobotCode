@@ -154,10 +154,11 @@ class BaseAlignAction {
 			return timeout_var;
 		}
 		bool check_preempted() {
+			bool preempted_var = false;
 			if(as_.isPreemptRequested()) {
-				return true;
+				preempted_var = true;
 			}
-			return false;
+			return preempted_var;
 		}
 
 		//Default error callbacks for pid node
@@ -175,7 +176,6 @@ class BaseAlignAction {
 		}
 		virtual void y_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
-			ROS_INFO_STREAM("running the base function :(((((((");
 			y_aligned_ = (fabs(msg.data[0]) < y_error_threshold);
 			if(debug)
 				ROS_WARN_STREAM_THROTTLE(1, "y error: " << fabs(msg.data[0]));
@@ -342,7 +342,26 @@ class BaseAlignAction {
 
 			//move mech out of the way
 			//move_mech(r, false);
-			//
+			//enable, wait for alignment, TODO change this timeout, keep enabled
+			align_orient(r, true, true, align_timeout, false);
+
+			//Check if it timed out or preempted while waiting
+			timed_out = check_timeout(start_time_, align_timeout);
+			preempted_ = check_preempted();
+			if(preempted_ || timed_out) {
+				return false;
+			}
+
+			//enable, wait for alignment, default timeout, don't keep enabled
+			//align_x(r, true, true);
+
+			////Check if it timed out or preempted while waiting
+			//timed_out = check_timeout(start_time_, align_timeout);
+			//preempted_ = check_preempted();
+			//if(preempted_ || timed_out) {
+			//	return false;
+			//}
+			
 			//enable, wait for alignment, default timeout, don't keep enabled
 			align_y(r, true, true);
 
@@ -354,25 +373,6 @@ class BaseAlignAction {
 			}
 
 
-			//enable, wait for alignment, TODO change this timeout, keep enabled
-			align_orient(r, true, true, align_timeout, true);
-
-			//Check if it timed out or preempted while waiting
-			timed_out = check_timeout(start_time_, align_timeout);
-			preempted_ = check_preempted();
-			if(preempted_ || timed_out) {
-				return false;
-			}
-
-			//enable, wait for alignment, default timeout, don't keep enabled
-			align_x(r, true, true);
-
-			//Check if it timed out or preempted while waiting
-			timed_out = check_timeout(start_time_, align_timeout);
-			preempted_ = check_preempted();
-			if(preempted_ || timed_out) {
-				return false;
-			}
 			ROS_INFO("Base align class: align succeeded");
 			return true;
 		}

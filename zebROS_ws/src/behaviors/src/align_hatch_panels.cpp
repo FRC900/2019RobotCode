@@ -37,7 +37,7 @@ bool debug;
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "align_hatch_server");
+	ros::init(argc, argv, "align_server");
 
 	ros::NodeHandle n;
 	ros::NodeHandle n_private_params("~");
@@ -64,10 +64,10 @@ int main(int argc, char** argv)
 
 	AlignHatchPanelAction align_hatch_action("align_hatch_server",
 			"align_hatch_pid/pid_enable",
-			"navX_pid/pid_enable",
+			"orient_pid/pid_enable",
 			"hatch_panel_distance_pid/pid_enable",
 			"align_with_camera/enable_y_pub",
-			"navX_pid/pid_debug",
+			"orient_pid/pid_debug",
 			"hatch_panel_distance_pid/pid_debug",
 			"align_with_camera/y_aligned");
 

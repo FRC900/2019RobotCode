@@ -91,7 +91,10 @@ void callback(const ImageConstPtr &frameMsg, const ImageConstPtr &depthMsg)
 		std::string frame_id = frameMsg->header.frame_id;
 		const size_t idx = frame_id.rfind("_optical_frame");
 		if (idx != std::string::npos)
+		{
 			frame_id.erase(idx);
+			frame_id += "_frame";
+		}
 		gd_msg.header.frame_id = frame_id;
 		dummy.x = gfd[i].pos.y;
 		dummy.y = gfd[i].pos.x;
@@ -202,7 +205,7 @@ int main(int argc, char **argv)
 	nh.getParam("no_depth", no_depth);
 
 	nh.getParam("hFov", hFov);
-	nh.getParam("camera_angle", hFov);
+	nh.getParam("camera_angle", camera_angle);
 
 	std::shared_ptr<message_filters::Subscriber<Image>> frame_sub;
 	std::shared_ptr<message_filters::Subscriber<Image>> depth_sub;
