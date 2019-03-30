@@ -18,8 +18,10 @@
 #include <talon_state_controller/TalonState.h>
 
 //define global variables that will be defined based on config values
-
+double fall_position;
+double elevator_position_deadzone;
 //durations and timeouts
+double timeout;
 double elevator_deploy_timeout;
 double elevator_climb_timeout;
 double running_forward_timeout;
@@ -105,6 +107,7 @@ class ClimbAction {
 				}
 			}
 		}
+
 
 		// Basic thread which spams cmd_vel to the drive base to
 		// continually drive forward during the climb
@@ -270,7 +273,25 @@ class ClimbAction {
 					elevator_goal.raise_intake_after_success = true;
 					//send the elevator_goal
 					ae_.sendGoal(elevator_goal);
-					waitForElevator(timed_out, preempted, goal->step, r, elevator_deploy_timeout);
+					/*waitForElevator(timed_out, preempted, goal->step, r, elevator_deploy_timeout);*/
+					bool success = false;
+					double start_time = ros::Time::now().toSec();
+					while(!success && !timed_out && !preempted) {
+						success = fabs(elev_cur_position_ - fall_position) < elevator_position_deadzone;
+
+						if(as_.isPreemptRequested() || !ros::ok())
+						{
+							ROS_ERROR("%s: Preempted", action_name_.c_str());
+							preempted = true;
+						}
+						else
+						{
+							ros::spinOnce();
+							r.sleep();
+						}
+						timed_out = ros::Time::now().toSec() - start_time > timeout;
+				 }
+
 				} //end of lowering elevator to make robot climb
 
 				ROS_INFO_STREAM("preempted = " << preempted);
@@ -302,10 +323,6 @@ class ClimbAction {
 					{
 						ROS_ERROR("climber server step 1: Foot retract failed in climber controller");
 						preempted = true;
-					}
-					else {
-						//only spin if we're not going to error out
-						ros::spinOnce();
 					}
 				}
 
@@ -527,11 +544,24 @@ int main(int argc, char** argv) {
 	//get config values
 	ros::NodeHandle n;
 	ros::NodeHandle n_climb_params(n, "climber_server");
+	ros::NodeHandle n_lift_params(n, "actionlib_lift_params");
 
 	if (!n.getParam("/actionlib_params/wait_for_server_timeout", wait_for_server_timeout))
 	{
 		ROS_ERROR("Could not read wait_for_server_timeout in climber_server");
 		wait_for_server_timeout = 10;
+	}
+
+	if (!n_lift_params.getParam("timeout", timeout))
+	{
+		ROS_ERROR("Could not read wait_for_server_timeout in climber_server");
+		timeout  = 10;
+	}
+
+	if (!n_lift_params.getParam("elevator_position_deadzone", elevator_position_deadzone))
+	{
+		ROS_ERROR("Could not read wait_for_server_timeout in climber_server");
+		elevator_position_deadzone  = 0.1;
 	}
 
 	if (!n_climb_params.getParam("wait_at_top_for_engage", wait_at_top_for_engage))
