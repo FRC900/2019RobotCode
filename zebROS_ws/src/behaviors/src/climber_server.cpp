@@ -31,10 +31,8 @@ double drive_forward_speed;
 double delay_before_engage;
 double delay_before_continue_retract;
 
-=======
-double climber_engage_pos;
-double climb_raise_position;
->>>>>>> elevator connected with climber
+double climb_raise_position; //used for detecting when climber engaged
+
 class ClimbAction {
 	protected:
 		ros::NodeHandle nh_;
