@@ -9,7 +9,8 @@ class AlignHatchPanelAction : public BaseAlignAction {
 							  const std::string &enable_y_topic_,
 							  const std::string &orient_error_topic_,
 							  const std::string &x_error_topic_,
-							  const std::string &y_error_topic_) :
+							  const std::string &y_error_topic_,
+							  const std::string &finish_align_server_name_) :
 			BaseAlignAction(name,
 				enable_align_topic_,
 				enable_orient_topic_,
@@ -17,7 +18,8 @@ class AlignHatchPanelAction : public BaseAlignAction {
 				enable_y_topic_,
 				orient_error_topic_,
 				x_error_topic_,
-				y_error_topic_)
+				y_error_topic_,
+				finish_align_server_name_)
 		{
 		}
 };
@@ -69,7 +71,8 @@ int main(int argc, char** argv)
 			"align_with_camera/enable_y_pub",
 			"orient_pid/pid_debug",
 			"hatch_panel_distance_pid/pid_debug",
-			"align_with_camera/y_aligned");
+			"align_with_camera/y_aligned",
+			"align_server/finish_align");
 
 	ros::spin();
 	return 0;
