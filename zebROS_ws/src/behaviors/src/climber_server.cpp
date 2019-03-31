@@ -31,6 +31,10 @@ double drive_forward_speed;
 double delay_before_engage;
 double delay_before_continue_retract;
 
+=======
+double climber_engage_pos;
+double climb_raise_position;
+>>>>>>> elevator connected with climber
 class ClimbAction {
 	protected:
 		ros::NodeHandle nh_;
@@ -56,6 +60,7 @@ class ClimbAction {
 		double navX_roll_;
 		double navX_pitch_;
 		double elev_cur_position_;
+		bool climber_engaged_;
 
 		std::atomic<double> cmd_vel_forward_speed_;
 		std::atomic<bool> stopped_;
@@ -101,6 +106,15 @@ class ClimbAction {
 					ros::spinOnce();
 					r.sleep();
 				}
+			}
+		}
+
+		void elevatorClimbConnectThread()
+		{
+			if(elev_cur_position_ <= climb_raise_position)
+			{
+				bool climber_engaged_ = true;
+				ROS_WARN_STREAM("elevator connected with climber");
 			}
 		}
 
@@ -170,6 +184,8 @@ class ClimbAction {
 			 */
 			ros::Rate r(20);
 
+			std::thread cmdVelThread(std::bind(&ClimbAction::cmdVelThread, this));
+			std::thread elevatorClimbConnectThread; //will be initialized right before moving the elevator down to make robot rise in air
 
 			//define variables that will be reused for each controller call/actionlib server call
 			//define variables that will be set true if the actionlib action is to be ended
@@ -264,8 +280,9 @@ class ClimbAction {
 				ROS_INFO("climber server step 1: starting to drive forward");
 				cmd_vel_forward_speed_ = drive_forward_speed;
 
+				std::thread elevatorClimbConnectThread(std::bind(&ClimbAction::elevatorClimbConnectThread, this));
 
-				//lower elevator to make robot rise off ground ---------------------------------------------------
+				//lower elevator to make robot rise off ground
 				if(!preempted && !timed_out && ros::ok())
 				{
 					ROS_INFO("climber server step 1: lowering elevator to make robot climb");
@@ -448,8 +465,9 @@ class ClimbAction {
 			}
 
 			stopped_ = true;
-			cmdVelThread.join();
 
+			cmdVelThread.join();
+			elevatorClimbConnectThread.join();
 			return;
 		}
 
@@ -541,6 +559,12 @@ int main(int argc, char** argv) {
 	//get config values
 	ros::NodeHandle n;
 	ros::NodeHandle n_climb_params(n, "climber_server");
+
+	if (!n.getParam("/action_lift_params/climber3/climb_raise_position", climb_raise_position))
+	{
+		ROS_ERROR("could not read climb_raise_position");
+		climb_raise_position = 0.79;
+	}
 
 	if (!n.getParam("/actionlib_params/wait_for_server_timeout", wait_for_server_timeout))
 	{
