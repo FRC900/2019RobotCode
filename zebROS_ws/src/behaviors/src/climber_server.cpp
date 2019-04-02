@@ -170,9 +170,9 @@ class ClimbAction {
 
 			/* Steps to climb:
 			 * Climber Server Step 0
-			 * Deploy foot via climber controller
 			 * Raise elevator to right height via elevator actionlib server
 			 * Climber Server Step 1
+			 * Deploy foot via climber controller
 			 * Deploy climber engagement piston via elevator controller
 			 * Start driving forward
 			 * Lower elevator to right height to make the robot climb (this should be slow... change pid somehow?)
@@ -199,17 +199,6 @@ class ClimbAction {
 
 				//no cmd vel thread here because we want to do step 0 when possibly still driving to the HAB
 
-				//deploy foot using climber controller -----------------------------------------------
-				ROS_INFO("climber server step 0: deploying foot");
-				//define service to send
-				std_srvs::SetBool srv;
-				srv.request.data = false; //shouldn't do anything, this is default
-				//call controller
-				if(!climber_controller_client_.call(srv))
-				{
-					ROS_ERROR("Foot deploy failed in climber controller");
-					preempted = true;
-				}
 
 				//pull cargo mech up ---------------------------------------------------
 				if(!preempted && !timed_out && ros::ok())
@@ -260,6 +249,18 @@ class ClimbAction {
 				ROS_INFO("climber server step 1: Starting cmd vel pub thread with initial speed 0");
 				cmd_vel_forward_speed_ = 0;
 				std::thread cmdVelThread(std::bind(&ClimbAction::cmdVelThread, this));
+
+				//deploy foot using climber controller -----------------------------------------------
+				ROS_INFO("climber server step 0: deploying foot");
+				//define service to send
+				std_srvs::SetBool srv;
+				srv.request.data = false; //shouldn't do anything, this is default
+				//call controller
+				if(!climber_controller_client_.call(srv))
+				{
+					ROS_ERROR("Foot deploy failed in climber controller");
+					preempted = true;
+				}
 
 				// pop out pin to engage climber with elevator -----------------------------------------------------------------
 				if(!preempted && !timed_out && ros::ok())
