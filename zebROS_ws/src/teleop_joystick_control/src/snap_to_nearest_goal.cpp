@@ -208,6 +208,7 @@ int main(int argc, char **argv)
 		else {
 			snap_angle = nearest_angle(nothing_angles, cur_angle);
 		}
+		snap_angle = nearest_angle(hatch_panel_angles, cur_angle + M_PI/2) - M_PI/2; //TODO remove having to multiply negative one
 		
 		//TODO make this not a hack (ASSUMES hatch panel)
 		//snap_angle = nearest_angle(hatch_panel_angles, cur_angle + M_PI/2) - M_PI/2; //TODO remove having to multiply negative one
@@ -218,7 +219,7 @@ int main(int argc, char **argv)
 		double angle_diff = angles::normalize_angle(goal_angle - heading);
 		angle_snap.data = snap_angle;
 		navX_state.data = angle_diff;
-		snapAnglePub.publish(0.0);
+		snapAnglePub.publish(angle_snap);
 		//ROS_WARN_STREAM_THROTTLE(0.1, "Angle diff: " << angle_diff);
 		//ROS_WARN_STREAM_THROTTLE(0.1, "Heading: " <<  heading);
 		//ROS_WARN_STREAM_THROTTLE(0.1, "Goal: " <<  goal_angle);
