@@ -112,7 +112,7 @@ class ClimbAction {
 		{
 			if(elev_cur_position_ <= climb_raise_position)
 			{
-				bool climber_engaged_ = true;
+				climber_engaged_ = true;
 				ROS_WARN_STREAM("elevator connected with climber");
 			}
 		}
@@ -445,7 +445,7 @@ class ClimbAction {
 				{
 					ROS_INFO("Running climber server step 2 preempt/timeout handling - preempting elevator server and stopping drive forward");
 					ae_.cancelGoalsAtAndBeforeTime(ros::Time::now());
-					cmd_vel_foward_speed_ = 0;
+					cmd_vel_forward_speed_ = 0;
 				}
 			}
 
