@@ -54,6 +54,8 @@ double max_rot;
 std::vector <frc_msgs::JoystickState> joystick_states_array;
 std::vector <std::string> topic_array;
 
+std::vector <ros::ServiceClient> finish_align_array;
+
 teleop_joystick_control::TeleopJoystickCompConfig config;
 
 
@@ -252,6 +254,14 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		//Joystick1: buttonA
 		if(joystick_states_array[0].buttonAPress)
 		{
+			//Change finish_align to false in align servers and start timer.
+			for(size_t i = 0; i <= finish_align_array.size(); i++)
+			{
+			std_srvs::SetBool srv;
+			srv.request.data = false;
+			finish_align_array[i].call(srv);
+			}
+
 			//Align the robot
 			ROS_WARN("Joystick1: buttonAPress - Auto Align");
 
@@ -282,9 +292,13 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		}
 		if(joystick_states_array[0].buttonARelease)
 		{
+			//Change finish_align to true in align servers and start timer.
+			for(size_t i = 0; i <= finish_align_array.size(); i++)
+			{
 			std_srvs::SetBool srv;
 			srv.request.data = true;
-			finish_align.call(srv);
+			finish_align_array[i].call(srv);
+			}
 		}
 
 		//Joystick1: buttonB
@@ -938,8 +952,11 @@ int main(int argc, char **argv)
 		subscriber_array.push_back(n.subscribe(topic_array[j], 1, &evaluateCommands));
 	}
 
-
 	joystick_states_array.resize(topic_array.size());
+
+	finish_align_array.push_back(n.serviceClient<std_srvs::SetBool>("/align_server/align_cargo_rocketship/finish_align"));
+	finish_align_array.push_back(n.serviceClient<std_srvs::SetBool>("/align_server/align_cargo_cargoship/finish_align"));
+	finish_align_array.push_back(n.serviceClient<std_srvs::SetBool>("/align_server/align_hatch_panels/finish_align"));
 
 	std::map<std::string, std::string> service_connection_header;
 	service_connection_header["tcp_nodelay"] = "1";
@@ -964,7 +981,6 @@ int main(int argc, char **argv)
 	elevator_ac = std::make_shared<actionlib::SimpleActionClient<behaviors::ElevatorAction>>("/elevator/elevator_server", true);
 
 	run_align = n.serviceClient<std_srvs::SetBool>("/align_with_terabee/run_align");
-	finish_align = n.serviceClient<std_srvs::SetBool>("/align_with_terabee/finish_align");
 
 	manual_server_panelIn = n.serviceClient<panel_intake_controller::PanelIntakeSrv>("/frcrobot_jetson/panel_intake_controller/panel_command");
 	//manual_server_cargoOut = n.serviceClient<cargo_outtake_controller::CargoOuttakeSrv>("/cargo_outtake_controller/cargo_outtake_command");

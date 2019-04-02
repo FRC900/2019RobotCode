@@ -14,8 +14,6 @@
 // TODO : These probably need to be moved into the base class, along
 // with some defaults and a way to set them
 
-bool finish_align = false;
-
 extern bool debug;
 
 // TODO
@@ -98,19 +96,13 @@ class BaseAlignAction {
 
 		double start_time_ = -1.0;
 
+		bool end_align_ = false;
+		bool button_hold_ = false;
+		double button_hold_start_time_ = -1.0;
+
 	public:
 		//make the executeCB function run every time the actionlib server is called
 		BaseAlignAction(const std::string &name,
-<<<<<<< HEAD
-				const std::string &enable_align_topic_,
-				const std::string &enable_orient_topic_,
-				const std::string &enable_x_topic_,
-				const std::string &enable_y_topic_,
-				const std::string &orient_error_topic_,
-				const std::string &x_error_topic_,
-				const std::string &y_error_topic_,
-				const std::string &finish_align_service_name_):
-=======
 
 						const std::string &enable_align_topic_,
 						const std::string &enable_orient_topic_,
@@ -128,8 +120,8 @@ class BaseAlignAction {
 
 						const std::string &orient_error_threshold_param_name_,
 						const std::string &x_error_threshold_param_name_,
-						const std::string &y_error_threshold_param_name_):
->>>>>>> base_align_server_dev
+						const std::string &y_error_threshold_param_name_,
+						const std::string &finish_align_service_name_):
 
 			as_(nh_, name, boost::bind(&BaseAlignAction::executeCB, this, _1), false),
 			action_name_(name),
@@ -138,29 +130,17 @@ class BaseAlignAction {
 			enable_orient_pub_(nh_.advertise<std_msgs::Bool>(enable_orient_topic_, 1, true)),
 			enable_x_pub_(nh_.advertise<std_msgs::Bool>(enable_x_topic_, 1, true)),
 			enable_y_pub_(nh_.advertise<std_msgs::Bool>(enable_y_topic_, 1, true)),
-<<<<<<< HEAD
-			orient_error_(nh_.subscribe(orient_error_topic_, 1, &BaseAlignAction::orient_error_cb, this)),
-			x_error_(nh_.subscribe(x_error_topic_, 1, &BaseAlignAction::x_error_cb, this)),
-			y_error_(nh_.subscribe(y_error_topic_, 1, &BaseAlignAction::y_error_cb, this))
-			{
-				as_.start();
-=======
 			orient_error_sub_(nh_.subscribe(orient_error_topic_, 1, &BaseAlignAction::orient_error_cb, this)),
 			x_error_sub_(nh_.subscribe(x_error_topic_, 1, &BaseAlignAction::x_error_cb, this)),
 			y_error_sub_(nh_.subscribe(y_error_topic_, 1, &BaseAlignAction::y_error_cb, this))
 		{
             as_.start();
->>>>>>> base_align_server_dev
 
 				std::map<std::string, std::string> service_connection_header;
 				service_connection_header["tcp_nodelay"] = "1";
 
-<<<<<<< HEAD
 				finish_align_ = nh_.advertiseService(finish_align_service_name_, &BaseAlignAction::finishAlignServer, this);
 
-				BrakeSrv_ = nh_.serviceClient<std_srvs::Empty>("/frcrobot_jetson/swerve_drive_controller/brake", false, service_connection_header);
-			}
-=======
 			BrakeSrv_ = nh_.serviceClient<std_srvs::Empty>("/frcrobot_jetson/swerve_drive_controller/brake", false, service_connection_header);
 
 			if(!nh_.getParam(align_timeout_param_name_, align_timeout_))
@@ -179,7 +159,6 @@ class BaseAlignAction {
 			if(!nh_.getParam(y_error_threshold_param_name_, y_error_threshold_))
 				ROS_ERROR_STREAM("Could not read y_error_threshold_param_name_ in align_server");
 		}
->>>>>>> base_align_server_dev
 
 		~BaseAlignAction(void)
 		{
@@ -188,19 +167,24 @@ class BaseAlignAction {
 		bool finishAlignServer(std_srvs::SetBool::Request &req,
 				std_srvs::SetBool::Response &res)
 		{
-			finish_align = req.data;
+			end_align_ = req.data;
+
+			if(!end_align_)
+				button_hold_start_time_ = ros::Time::now().toSec();
+			else
+				button_hold_ = (ros::Time::now().toSec() - button_hold_start_time_) >= 0.25;
+
 			return true;
 		}
 
 		bool waitForFinishAlign(ros::Rate r)
 		{
-			while(ros::ok() && !finish_align)
+			while(ros::ok() && !end_align_)
 			{
 				r.sleep();
 			}
 
-			finish_align = false;
-			return ((ros::Time::now().toSec() - start_time_) < 0.25);
+			return !button_hold_;
 		}
 
 		//function to check for preempts and timeouts

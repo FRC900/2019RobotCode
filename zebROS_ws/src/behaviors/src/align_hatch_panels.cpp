@@ -29,6 +29,7 @@ class AlignHatchPanelAction : public BaseAlignAction {
 							const std::string &y_error_threshold_param_name_,
 
 							const std::string &ratio_xy_topic_,
+
 							const std::string &finish_align_server_name_) :
 			BaseAlignAction(name,
 				enable_align_topic_,
@@ -48,6 +49,7 @@ class AlignHatchPanelAction : public BaseAlignAction {
 				orient_error_threshold_param_name_,
 				x_error_threshold_param_name_,
 				y_error_threshold_param_name_,
+
 				finish_align_server_name_)
 		{
 
@@ -105,7 +107,9 @@ int main(int argc, char** argv)
 			"/align_server/align_hatch_params/orient_error_threshold",
 			"/align_server/align_hatch_params/x_error_threshold",
 			"/align_server/align_hatch_params/y_error_threshold",
-			"align_hatch_pid/ratio_xy");
+			"align_hatch_pid/ratio_xy",
+
+			"/align_server/align_hatch_panels/finish_align");
 
 	ros::spin();
 	return 0;
