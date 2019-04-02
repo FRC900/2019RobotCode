@@ -27,10 +27,11 @@ double running_forward_timeout;
 double elevator_climb_low_timeout;
 double match_time_lock;
 double wait_for_server_timeout;
-double drive_forward_speed;
 double delay_before_engage;
 double delay_before_continue_retract;
 
+//other config variables
+double drive_forward_speed;
 double climb_raise_position; //used for detecting when climber engaged
 
 class ClimbAction {
@@ -238,6 +239,10 @@ class ClimbAction {
 					ae_.sendGoal(elevator_goal);
 					waitForElevator(timed_out, preempted, goal->step, r, elevator_deploy_timeout);
 				} //end of raise elevator to right height before engaging
+				if(preempted || timed_out)
+				{
+					ae_.cancelGoalsAtAndBeforeTime(ros::Time::now());
+				}
 
 				//preempt handling
 				if(preempted || timed_out || !ros::ok())
@@ -301,9 +306,17 @@ class ClimbAction {
 				//handle preempting/timed out for step 1, prior to falling ------------------------------------------------------
 				if(preempted || timed_out || !ros::ok())
 				{
-					ROS_WARN_STREAM("Climber server timed out or was preempted in step 1 prior to falling");
-					ae_.cancelGoalsAtAndBeforeTime(ros::Time::now());
+					ROS_WARN_STREAM("Climber server timed out or was preempted in step 1 prior to falling, moving robot to ground");
 					cmd_vel_forward_speed_ = 0;
+					/*
+					//move robot to ground
+					behaviors::ElevatorGoal elevator_goal;
+					elevator_goal.setpoint_index = ELEVATOR_RAISE;
+					elevator_goal.place_cargo = 0; //doesn't actually do anything
+					elevator_goal.raise_intake_after_success = true;
+					//send the elevator_goal
+					ae_.sendGoal(elevator_goal);
+					*/
 				}
 				else
 				{
@@ -311,7 +324,9 @@ class ClimbAction {
 					if(!preempted && !timed_out && ros::ok())
 					{
 						ROS_INFO_STREAM("Climber server step 1: Retracting foot to make robot fall");
+
 						//define service to send
+						std_srvs::SetBool srv;
 						srv.request.data = true;
 						//call controller
 						if(!climber_controller_client_.call(srv))
@@ -598,12 +613,6 @@ int main(int argc, char** argv) {
 	{
 		ROS_ERROR("Could not read match_time_lock in climber_server");
 		match_time_lock = 135;
-	}
-
-	if (!n_climb_params.getParam("pull_leg_up_pause_time", pull_leg_up_pause_time))
-	{
-		ROS_ERROR("Could not read pull_leg_up_pause_time in climber_server");
-		pull_leg_up_pause_time = 0.5;
 	}
 
 	if (!n_climb_params.getParam("drive_forward_speed", drive_forward_speed))
