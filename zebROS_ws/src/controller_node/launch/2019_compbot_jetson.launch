@@ -271,7 +271,7 @@
 
 	<group ns="align_hatch">
 		<rosparam file="$(find behaviors)/config/align_server.yaml" command="load"/>
-		<node name="align_server" pkg="behaviors" type="align_hatch_server" output="screen" launch-prefix="gdb --ex run --args" />
+		<node name="align_server" pkg="behaviors" type="align_hatch_server" output="screen"/>
 
 		<node name="align_with_camera" pkg="behaviors" type="align_with_camera" output="screen" >
 			<param name="target_frame" value="panel_outtake" />
@@ -339,6 +339,6 @@
 	<include file="$(find realsense2_camera)/launch/rs_t265.launch" />
 	<include file="$(find controller_node)/launch/record_2019_compbot.launch" if="$(arg record)" />
 
-	<include file="$(find controller_node)/launch/tf_2019.launch" if="$(eval arg('hw_or_sim')=='hw')"/>
+	<!-- <include file="$(find controller_node)/launch/tf_2019.launch" /> -->
 
 </launch>
