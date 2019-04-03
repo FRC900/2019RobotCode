@@ -14,6 +14,8 @@ if (DEFINED CMAKE_TOOLCHAIN_FILE)
     geometry_msgs
     std_msgs
     sensor_msgs
+    tf2
+    tf2_ros
   )
 else()
   find_package(catkin REQUIRED COMPONENTS
@@ -23,6 +25,7 @@ else()
     geometry_msgs
     std_msgs
     sensor_msgs
+	teraranger_array
     cv_bridge
     tf2
     tf2_ros

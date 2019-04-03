@@ -11,40 +11,7 @@
 #include "actionlib/client/simple_action_client.h"
 #include "std_srvs/SetBool.h"
 
-// TODO : These probably need to be moved into the base class, along
-// with some defaults and a way to set them
-
 extern bool debug;
-
-// TODO
-//    One way to clean this up is to create a base AlignAction class
-//    that then gets specialized into different derived classes based on the 
-//    thing being aligned
-//    As it stands now, you'd want one derived class for Terabee hatch (currently only auto align)
-//    and a second for cargo on the rocket.  We'd add additional derived classes for
-//    ZED hatch and C920 cargo ship cargo
-//    The base class would have everything shared between the processes.  Basically, everything
-//    at this point minus a few exceptions
-//    The point where the class is checking if(goal->has_cargo) would turn into an
-//    unconditional call to a member function. This function would be different in each
-//    derived class - it would be customized for each derived type.
-//    Then to make this function work, you'd combine the goal->has_cargo specific vars
-//    (e.g. hatch_panel_enable_distance pub and cargo_enable_distance_pub) into a single
-//    var. That var would be initialized to the correct value at init time for each of the
-//    separate classes.  So when constructing the derived TerabeeCargoAlignAction class,
-//    set the now-combined enable_distance_pub var to publish to "cargo_distance_pid/pid_enable"
-//    Then the specialized function in the derived TerabeeCargoAlignAction will use
-//    distance_pub, and it will be set to the correct publisher for that.
-//    After doing this, continue to simplify by moving code which is only needed
-//    in the derived classes into those classed (e.g. the callback for their particular
-//    enable_distance_pub)
-//    The main idea is to make the base class code generic to the "align angle, then distance, then y"
-//    problem and putting anything specific into derived classes. This makes it easier to add
-//    a new e.g. Zed class - you just have to fill in the Zed-specific parts while still having
-//    the Base framework for the generic stuff.
-//    This would move the decision between cargo vs hatch up to the teleop, but it kinda makes
-//    sense - it would call a variety of AlignActions based on input it has already
-//    then make the specific Align Action only do one thing well
 
 //bool startup = true; //disable all pid nodes on startup
 class BaseAlignAction {
@@ -214,21 +181,21 @@ class BaseAlignAction {
 		virtual void orient_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			orient_aligned_ = (fabs(msg.data[0]) < orient_error_threshold_);
-			orient_error_ =fabs(msg.data[0]) < orient_error_threshold_;
+			orient_error_ =fabs(msg.data[0]);
 			if(debug)
 				ROS_WARN_STREAM_THROTTLE(1, "orient error: " << fabs(msg.data[0]));
 		}
 		virtual void x_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			x_aligned_ = (fabs(msg.data[0]) < x_error_threshold_);
-			x_error_ =fabs(msg.data[0]) < x_error_threshold_;
+			x_error_ =fabs(msg.data[0]);
 			if(debug)
 				ROS_WARN_STREAM_THROTTLE(1, "x error: " << fabs(msg.data[0]));
 		}
 		virtual void y_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			y_aligned_ = (fabs(msg.data[0]) < y_error_threshold_);
-			y_error_ =fabs(msg.data[0]) < y_error_threshold_;
+			y_error_ =fabs(msg.data[0]);
 			if(debug)
 				ROS_WARN_STREAM_THROTTLE(1, "y error: " << fabs(msg.data[0]));
 		}
@@ -377,7 +344,7 @@ class BaseAlignAction {
 
 		//Example align function
 		virtual bool robot_align() {
-			ros::Rate r(30);
+			ros::Rate r(60);
 			ROS_WARN("starting robot_align");
 
 			start_time_ = ros::Time::now().toSec();
@@ -423,11 +390,10 @@ class BaseAlignAction {
 			//if(preempted_ || timed_out) {
 			//	return false;
 			//}
-
 			//enable,don't wait for alignment, default timeout, don't keep enabled
 			ROS_WARN("Starting y align");
 			align_y(r, true);
-			align_x(r, true);
+			align_x(r, true, true);
 			ROS_WARN("ending y align");
 
 			//Check if it timed out or preempted while waiting
