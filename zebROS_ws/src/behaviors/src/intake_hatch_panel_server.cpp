@@ -42,7 +42,21 @@ class IntakeHatchPanelAction
 	}
 
 		~IntakeHatchPanelAction(void) {}
+		ros::Rate loop_rate(20);
+		void checkForTimeouts(void)
+		{
+			start_time = ros::Time::now().toSec();
+				while(!timed_out && !preempted && ros::ok())
+					{
+					timed_out = (ros::Time::now().toSec()-start_time) > pause_time_after_extend;
 
+					if(as_.isPreemptRequested() || !ros::ok()) {
+						ROS_WARN(" %s: Preempted", action_name_.c_str());
+						preempted = true;
+					}
+					r.sleep();
+					}
+		}
 		void executeCB(const behaviors::IntakeGoalConstPtr &/*goal*/)
 		{
 			ROS_INFO("Hatch Panel Intake Server Running");
@@ -125,17 +139,18 @@ class IntakeHatchPanelAction
 					ROS_ERROR("Panel controller call failed in panel intake server");
 					preempted = true;
 				}
-
+				checkForTimeouts();
 				//pause for a bit
-				while(!timed_out && !preempted && ros::ok())
-					{
-					timed_out = (ros::Time::now().toSec()-start_time) > pause_time_after_extend;
-
-					if(as_.isPreemptRequested() || !ros::ok()) {
-						ROS_WARN(" %s: Preempted", action_name_.c_str());
-						preempted = true;
-					}
-					}
+		  	 // start_time = ros::Time::now().toSec();
+			 //	while(!timed_out && !preempted && ros::ok())
+			 //		{
+			 //		timed_out = (ros::Time::now().toSec()-start_time) > pause_time_after_extend;
+             //
+			 //		if(as_.isPreemptRequested() || !ros::ok()) {
+			 //			ROS_WARN(" %s: Preempted", action_name_.c_str());
+			 //			preempted = true;
+			 //		}
+			 //		}
 				//grab the panel - we can reuse the srv variable
 				srv.request.claw_release = false;
 				srv.request.push_extend = true;
@@ -146,15 +161,17 @@ class IntakeHatchPanelAction
 					preempted = true;
 				}
 				ros::spinOnce(); //update everything
-				while(!timed_out && !preempted && ros::ok())
-					{
-					timed_out = (ros::Time::now().toSec()-start_time) > pause_time_after_clamp;
-					if(as_.isPreemptRequested() || !ros::ok()) {
-						ROS_WARN(" %s: Preempted", action_name_.c_str());
-						preempted = true;
-					}
-					}
-			}
+				checkForTimeouts();
+			//	start_time = ros::Time::now().toSec();
+			//	while(!timed_out && !preempted && ros::ok())
+			//		{
+			//		timed_out = (ros::Time::now().toSec()-start_time) > pause_time_after_clamp;
+			//		if(as_.isPreemptRequested() || !ros::ok()) {
+			//			ROS_WARN(" %s: Preempted", action_name_.c_str());
+			//			preempted = true;
+			//		}
+			//		}
+		//	}
 
 			//Set final state - retract the panel mechanism and clamp (to stay within frame perimeter)
 			//it doesn't matter if preempted or timed out, do this anyway
