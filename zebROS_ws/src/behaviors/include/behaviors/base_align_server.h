@@ -170,9 +170,15 @@ class BaseAlignAction {
 			end_align_ = req.data;
 
 			if(!end_align_)
+			{
+				ROS_INFO_STREAM("end align = " << end_align_ << ", starting press vs. hold timer.");
 				button_hold_start_time_ = ros::Time::now().toSec();
+			}
 			else
+			{
+				ROS_INFO_STREAM("end align = " << end_align_ << ", stopping press vs. hold timer. Time held = " << (ros::Time::now().toSec() - button_hold_start_time_));
 				button_hold_ = (ros::Time::now().toSec() - button_hold_start_time_) >= 0.25;
+			}
 
 			return true;
 		}
@@ -184,6 +190,7 @@ class BaseAlignAction {
 				r.sleep();
 			}
 
+			ROS_INFO_STREAM("Button held = " << button_hold_);
 			return !button_hold_;
 		}
 
