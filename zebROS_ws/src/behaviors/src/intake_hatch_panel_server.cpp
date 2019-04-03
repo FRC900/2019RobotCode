@@ -141,6 +141,7 @@ class IntakeHatchPanelAction
 				}
 				checkForTimeouts();
 				//pause for a bit
+<<<<<<< HEAD
 		  	 // start_time = ros::Time::now().toSec();
 			 //	while(!timed_out && !preempted && ros::ok())
 			 //		{
@@ -151,6 +152,17 @@ class IntakeHatchPanelAction
 			 //			preempted = true;
 			 //		}
 			 //		}
+=======
+				while(!timed_out && !preempted && ros::ok())
+					{
+					timed_out = (ros::Time::now().toSec()-start_time) > pause_time_after_extend;
+
+					if(as_.isPreemptRequested() || !ros::ok()) {
+						ROS_WARN(" %s: Preempted", action_name_.c_str());
+						preempted = true;
+					}
+					}
+>>>>>>> 326e20ede459e57e6068375ae55585d5adb6d581
 				//grab the panel - we can reuse the srv variable
 				srv.request.claw_release = false;
 				srv.request.push_extend = true;
@@ -161,6 +173,7 @@ class IntakeHatchPanelAction
 					preempted = true;
 				}
 				ros::spinOnce(); //update everything
+<<<<<<< HEAD
 				checkForTimeouts();
 			//	start_time = ros::Time::now().toSec();
 			//	while(!timed_out && !preempted && ros::ok())
@@ -172,6 +185,17 @@ class IntakeHatchPanelAction
 			//		}
 			//		}
 		//	}
+=======
+				while(!timed_out && !preempted && ros::ok())
+					{
+					timed_out = (ros::Time::now().toSec()-start_time) > pause_time_after_clamp;
+					if(as_.isPreemptRequested() || !ros::ok()) {
+						ROS_WARN(" %s: Preempted", action_name_.c_str());
+						preempted = true;
+					}
+					}
+			}
+>>>>>>> 326e20ede459e57e6068375ae55585d5adb6d581
 
 			//Set final state - retract the panel mechanism and clamp (to stay within frame perimeter)
 			//it doesn't matter if preempted or timed out, do this anyway

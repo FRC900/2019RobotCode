@@ -147,6 +147,10 @@ if [ ${#RSYNC_OPTIONS} -eq 0 ] ; then
 			--exclude 'zebROS_ws/devel*' --exclude 'zebROS_ws/install*' \
 			--exclude '*~' --exclude '*.sw[op]'  --exclude '*CMakeFiles*' \
 			--exclude '*.avi' --exclude '*.exe'  --exclude 'pixy2/documents' --exclude 'build' \
+<<<<<<< HEAD
+=======
+			--exclude '*.zms' \
+>>>>>>> 326e20ede459e57e6068375ae55585d5adb6d581
 			$i:$JETSON_ENV_LOCATION/ $LOCAL_CLONE_LOCATION/
 		if [ $? -ne 0 ]; then
 			echo "Failed to synchronize source code FROM $INSTALL_ENV on Jetson!"
@@ -166,6 +170,10 @@ do
 		--exclude 'zebROS_ws/devel*' --exclude 'zebROS_ws/install*' \
 		--exclude '*~' --exclude '*.sw[op]' --exclude '*CMakeFiles*' \
 		--exclude '*.avi' --exclude '*.exe'  --exclude 'pixy2/documents' --exclude 'build' \
+<<<<<<< HEAD
+=======
+		--exclude '*.zms'\
+>>>>>>> 326e20ede459e57e6068375ae55585d5adb6d581
 		$LOCAL_CLONE_LOCATION/ $i:$JETSON_ENV_LOCATION/
 	if [ $? -ne 0 ]; then
 		echo "Failed to synchronize source code TO $INSTALL_ENV on Jetson $i!"
