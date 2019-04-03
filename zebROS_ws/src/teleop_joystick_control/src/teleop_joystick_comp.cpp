@@ -280,7 +280,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			if(joystick_states_array[0].leftTrigger <= 0.5)
 			{
 				//Align the robot before hatch outtake
-				ROS_WARN("Joystick1: buttonBPress - Auto Align");
+				ROS_WARN_STREAM("Joystick1: buttonBPress - Auto Align");
 				preemptActionlibServers();
 				behaviors::AlignGoal goal;
 				goal.has_cargo = false;
@@ -374,7 +374,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 			if(joystick_states_array[0].leftTrigger <= 0.5)
 			{
 				//Align the robot before cargo outtake
-				ROS_WARN("Joystick1: bumperLeftPress - Auto Align");
+				ROS_WARN_STREAM("Joystick1: bumperLeftPress - Auto Align");
 				preemptActionlibServers();
 				behaviors::AlignGoal goal;
 				goal.trigger = true;
