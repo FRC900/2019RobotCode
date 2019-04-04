@@ -32,7 +32,7 @@
 #include "dynamic_reconfigure_wrapper/dynamic_reconfigure_wrapper.h"
 #include "teleop_joystick_control/TeleopJoystickCompConfig.h"
 
-#include "teleop_joystick_control/Rumble.h"
+#include "rumble_controller/RumbleSrv.h"
 
 int elevator_cur_setpoint_idx;
 int climber_cur_step;
@@ -260,7 +260,7 @@ bool orientCallback(teleop_joystick_control::RobotOrient::Request& req,
 					goal.has_cargo = false;
 				}
 				align_ac->sendGoal(goal);*/
-				teleop_joystick_control::Rumble rumble;
+				rumble_controller::RumbleSrv rumble;
 				rumble.request.leftRumble = (int)(triggerLeft*32768);
 				rumble.request.rightRumble = (int)(triggerRight*32768);
 				ROS_INFO("Left %i",rumble.request.leftRumble);
@@ -973,7 +973,7 @@ bool orientCallback(teleop_joystick_control::RobotOrient::Request& req,
 		navX_pid = n.advertise<std_msgs::Bool>("/align_server/navX_pid/pid_enable", 1);
 		enable_align = n.advertise<std_msgs::Bool>("/align_server/align_pid/pid_enable", 1);
 
-		joystick_rumble = n.serviceClient<teleop_joystick_control::Rumble>("/frcrobot_rio/rumble_server");
+		joystick_rumble = n.serviceClient<rumble_controller::RumbleSrv>("/frcrobot_rio/rumble_controller/rumble_command");
 		ros::ServiceServer robot_orient_service = n.advertiseService("robot_orient", orientCallback);
 
 	DynamicReconfigureWrapper<teleop_joystick_control::TeleopJoystickCompConfig> drw;

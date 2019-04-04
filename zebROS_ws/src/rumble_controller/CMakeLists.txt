@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   controller_interface
   message_generation
   message_runtime
+  realtime_tools
   pluginlib
   )
 

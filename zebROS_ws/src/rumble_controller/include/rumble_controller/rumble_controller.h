@@ -5,6 +5,7 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <controller_interface/controller.h> //for writing controllers
 #include <pluginlib/class_list_macros.h> //to compile as a controller
+#include <realtime_tools/realtime_buffer.h>
 #include <std_msgs/Float64.h>
 #include "rumble_controller/RumbleSrv.h"
 #include "sensor_msgs/JointState.h"
@@ -40,7 +41,7 @@ class RumbleController : public controller_interface::Controller<hardware_interf
         private:
             hardware_interface::JointHandle rumble_joint_;
 
-	    double rumble_cmd_; //buffer for clamp and extend commands
+			realtime_tools::RealtimeBuffer<double> rumble_cmd_; //buffer for clamp and extend commands
 
             ros::ServiceServer rumble_service_; //service for receiving commands
 }; //class

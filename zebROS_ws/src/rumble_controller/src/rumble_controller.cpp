@@ -22,11 +22,11 @@ namespace rumble_controller
 
 	void RumbleController::starting(const ros::Time &/*time*/) {
 		//claw not released, mech not extended
-		rumble_cmd_ = RumbleController::convert(0,0);
+		rumble_cmd_.writeFromNonRT(RumbleController::convert(0,0));
 	}
 
 	void RumbleController::update(const ros::Time &/*time*/, const ros::Duration &/*period*/) {
-		rumble_joint_.setCommand(rumble_cmd_);
+		rumble_joint_.setCommand(*rumble_cmd_.readFromRT());
 	}
 
 	void RumbleController::stopping(const ros::Time &/*time*/) {
@@ -35,7 +35,7 @@ namespace rumble_controller
 	bool RumbleController::cmdService(rumble_controller::RumbleSrv::Request &req, rumble_controller::RumbleSrv::Response &/*response*/) {
 		if(isRunning())
 		{
-			rumble_cmd_ = RumbleController::convert(req.leftRumble,req.rightRumble);
+			rumble_cmd_.writeFromNonRT(RumbleController::convert(req.leftRumble,req.rightRumble));
 		}
 		else
 		{

@@ -17,6 +17,7 @@ if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 		frc_msgs
 		dynamic_reconfigure
 		dynamic_reconfigure_wrapper
+		rumble_controller
 		)
 
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
@@ -26,7 +27,6 @@ if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 	add_service_files (
 		FILES
 		RobotOrient.srv
-		Rumble.srv
 		)
 
 	generate_messages (
@@ -65,15 +65,6 @@ if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 		${Eigen3_INCLUDE_DIRS}
 		)
 
-	add_executable(rumble_server src/rumble_server.cpp)
-	target_link_libraries(rumble_server
-		${catkin_LIBRARIES}
-		)
-	add_dependencies(rumble_server
-		${${PROJECT_NAME}_EXPORTED_TARGETS}
-		${catkin_EXPORTED_TARGETS}
-		)
-	
 	
 	add_executable(teleop_joystick_comp src/teleop_joystick_comp.cpp)
 	set_target_properties(teleop_joystick_comp PROPERTIES OUTPUT_NAME 

@@ -62,6 +62,7 @@
 	<depend>controller_interface</depend>
 	<depend>message_generation</depend>
 	<depend>message_runtime</depend>
+	<depend>realtime_tools</depend>
 	<depend>pluginlib</depend>
 
 	<!-- The export tag contains other, unspecified, tags -->
