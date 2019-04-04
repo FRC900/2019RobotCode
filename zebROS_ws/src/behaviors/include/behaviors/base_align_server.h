@@ -11,6 +11,10 @@
 #include "actionlib/client/simple_action_client.h"
 #include "std_srvs/SetBool.h"
 
+#include <dynamic_reconfigure/DoubleParameter.h>
+#include <dynamic_reconfigure/Reconfigure.h>
+#include <dynamic_reconfigure/Config.h>
+
 extern bool debug;
 
 //bool startup = true; //disable all pid nodes on startup
@@ -177,25 +181,56 @@ class BaseAlignAction {
 			return preempted_var;
 		}
 
+		virtual void load_new_pid(std::string reconfigure_topic, double p_, double i_, double d_) {
+			dynamic_reconfigure::ReconfigureRequest srv_req;
+			dynamic_reconfigure::ReconfigureResponse srv_resp;
+			dynamic_reconfigure::Config conf;
+
+			dynamic_reconfigure::DoubleParameter p;
+			dynamic_reconfigure::DoubleParameter i;
+			dynamic_reconfigure::DoubleParameter d;
+			dynamic_reconfigure::DoubleParameter p_scale;
+			dynamic_reconfigure::DoubleParameter i_scale;
+			dynamic_reconfigure::DoubleParameter d_scale;
+
+			p.value = p_;
+			i.value = i_;
+			d.value = d_;
+
+			p_scale.value = 100.0;
+			i_scale.value = 100.0;
+			d_scale.value = 100.0;
+
+			conf.doubles.push_back(p_scale);
+			conf.doubles.push_back(p);
+			conf.doubles.push_back(i_scale);
+			conf.doubles.push_back(i);
+			conf.doubles.push_back(d_scale);
+			conf.doubles.push_back(d);
+
+			srv_req.config = conf;
+			ros::service::call(reconfigure_topic, srv_req, srv_resp);
+		}
+
 		//Default error callbacks for pid node
 		virtual void orient_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			orient_aligned_ = (fabs(msg.data[0]) < orient_error_threshold_);
-			orient_error_ =fabs(msg.data[0]);
+			orient_error_ =msg.data[0];
 			if(debug)
 				ROS_WARN_STREAM_THROTTLE(1, "orient error: " << fabs(msg.data[0]));
 		}
 		virtual void x_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			x_aligned_ = (fabs(msg.data[0]) < x_error_threshold_);
-			x_error_ =fabs(msg.data[0]);
+			x_error_ = msg.data[0];
 			if(debug)
 				ROS_WARN_STREAM_THROTTLE(1, "x error: " << fabs(msg.data[0]));
 		}
 		virtual void y_error_cb(const std_msgs::Float64MultiArray &msg)
 		{
 			y_aligned_ = (fabs(msg.data[0]) < y_error_threshold_);
-			y_error_ =fabs(msg.data[0]);
+			y_error_ = msg.data[0];
 			if(debug)
 				ROS_WARN_STREAM_THROTTLE(1, "y error: " << fabs(msg.data[0]));
 		}
@@ -410,8 +445,15 @@ class BaseAlignAction {
 
 		//define the function to be executed when the actionlib server is called
 		virtual void executeCB(const behaviors::AlignGoalConstPtr &goal) {
+			double start_time = ros::Time::now().toSec();
 			disable_pid();
+			ros::Rate r(20);
 			bool align_succeeded = robot_align();
+			bool timed_out = false;
+			while(!timed_out && ros::ok()) {
+				timed_out = ros::Time::now().toSec() - start_time > 0.1;
+				r.sleep();
+			}
 			disable_pid(); //Disable all align PID after execution
 
 			if(orient_timed_out_ || y_timed_out_ || x_timed_out_)
