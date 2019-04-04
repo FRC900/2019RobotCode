@@ -11,7 +11,7 @@ def main():
 
 	drawCross(res, 200, 200)
 
-	cv2.imwrite('/home/yashas/Pictures/' + imgname, res)
+	cv2.imwrite('/home/ubuntu/' + imgname, res)
 
 def drawCross(img, x, y):
      cv2.line(img,(x,y-30),(x,y+30),(0,0,255,255),8)
