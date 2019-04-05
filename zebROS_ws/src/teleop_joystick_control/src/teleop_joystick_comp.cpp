@@ -82,6 +82,8 @@ ros::ServiceClient continue_outtake_client;
 
 ros::ServiceClient align_with_terabee;
 
+ros::ServiceClient align_teleop_combine;
+
 //use shared pointers to make the clients global
 std::shared_ptr<actionlib::SimpleActionClient<behaviors::IntakeAction>> intake_cargo_ac;
 std::shared_ptr<actionlib::SimpleActionClient<behaviors::PlaceAction>> outtake_cargo_ac;
@@ -254,6 +256,10 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		//Joystick1: buttonA
 		if(joystick_states_array[0].buttonAPress)
 		{
+			std_srvs::SetBool srv;
+			srv.request.data = true;
+			align_teleop_combine.call(srv);
+
 			//Change finish_align to false in align servers and start timer.
 			for(size_t i = 0; i < finish_align_array.size(); i++)
 			{
@@ -957,6 +963,8 @@ int main(int argc, char **argv)
 	finish_align_array.push_back(n.serviceClient<std_srvs::SetBool>("/align_server/align_cargo_rocketship/finish_align"));
 	finish_align_array.push_back(n.serviceClient<std_srvs::SetBool>("/align_server/align_cargo_cargoship/finish_align"));
 	finish_align_array.push_back(n.serviceClient<std_srvs::SetBool>("/align_server/align_hatch_panels/finish_align"));
+
+	align_teleop_combine = n.serviceClient<std_srvs::SetBool>("/frcrobot_jetson/swerve_drive_controller/hold_align_button");
 
 	std::map<std::string, std::string> service_connection_header;
 	service_connection_header["tcp_nodelay"] = "1";

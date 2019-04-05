@@ -34,6 +34,8 @@
 		-->
 		<node name="dump_offsets_service" pkg="talon_swerve_drive_controller" type="dump_offsets_service" output="screen"> </node>
 
+		<node name="align_teleop_combine" pkg="talon_swerve_drive_controller" type="align_teleop_combine" output="screen"> </node>
+		
 		<!-- Load hardware interface -->
 		<node name="frcrobot_hardware_interface" pkg="ros_control_boilerplate" type="frcrobot_$(arg hw_or_sim)_main"
 			output="screen" launch-prefix="$(arg launch_prefix)">

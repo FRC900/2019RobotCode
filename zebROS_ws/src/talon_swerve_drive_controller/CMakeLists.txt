@@ -84,6 +84,13 @@ add_dependencies(dump_offsets_service
 	${${PROJECT_NAME}_EXPORTED_TARGETS}
 	${catkin_EXPORTED_TARGETS}
 )
+
+add_executable(align_teleop_combine src/align_teleop_combine.cpp)
+target_link_libraries(align_teleop_combine ${catkin_LIBRARIES})
+add_dependencies(align_teleop_combine
+	${${PROJECT_NAME}_EXPORTED_TARGETS}
+	${catkin_EXPORTED_TARGETS}
+)
 install(DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
