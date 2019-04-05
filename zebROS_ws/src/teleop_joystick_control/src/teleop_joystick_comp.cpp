@@ -293,7 +293,7 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 		if(joystick_states_array[0].buttonARelease)
 		{
 			//Change finish_align to true in align servers and start timer.
-			for(size_t i = 0; i <= finish_align_array.size(); i++)
+			for(size_t i = 0; i < finish_align_array.size(); i++)
 			{
 				std_srvs::SetBool srv;
 				srv.request.data = true;
