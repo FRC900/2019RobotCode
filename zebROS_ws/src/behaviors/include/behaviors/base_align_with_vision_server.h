@@ -39,7 +39,9 @@ class BaseAlignVisionAction : public BaseAlignAction {
 
 							const std::string &ratio_xy_topic_,
 
-							const std::string &reconfigure_orient_pid_topic):
+							const std::string &reconfigure_orient_pid_topic,
+
+							const std::string &finish_align_server_name_):
 			BaseAlignAction(name,
 				enable_align_topic_,
 				enable_orient_topic_,
@@ -57,7 +59,10 @@ class BaseAlignVisionAction : public BaseAlignAction {
 
 				orient_error_threshold_param_name_,
 				x_error_threshold_param_name_,
-				y_error_threshold_param_name_),
+				y_error_threshold_param_name_,
+
+				finish_align_server_name_),
+
 			 reconfigure_orient_pid_topic_(reconfigure_orient_pid_topic)
 		{
 			if(!nh_.getParam("orient_pid/p0", p0)){
