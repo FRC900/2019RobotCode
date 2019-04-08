@@ -28,7 +28,7 @@
 
 #include "rev/CANSparkMax.h"
 
-//#include "rev/CANSparkMaxFrames.h"
+#include "rev/CANSparkMaxFrames.h"
 
 using namespace rev;
 
@@ -277,18 +277,15 @@ double CANSparkMax::GetMotorTemperature() {
 
 CANError CANSparkMax::ClearFaults() {
     frc::CANData frame;
-    //m_can.WritePacket(frame.data, 0, CMD_API_CLEAR_FAULTS);
+    m_can.WritePacket(frame.data, 0, CMD_API_CLEAR_FAULTS);
     return CANError::kOK;
 }
 
 CANError CANSparkMax::BurnFlash() {
-
-#if 0
     frc::CANData frame;
     frame.data[0] = 0xA3;
     frame.data[1] = 0x3A;
     m_can.WritePacket(frame.data, 2, CMD_API_BURN_FLASH);
-#endif
     return CANError::kOK;
 }
 

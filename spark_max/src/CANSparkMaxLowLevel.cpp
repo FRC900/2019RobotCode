@@ -40,9 +40,9 @@
 #include <wpi/SmallString.h>
 #include <wpi/raw_ostream.h>
 
-//#include "rev/CANSparkMaxFrames.h"
+#include "rev/CANSparkMaxFrames.h"
 //#include "rev/CANSparkMaxHeartbeat.h"
-//#include "rev/CANSparkMaxSetDriver.h"
+#include "rev/CANSparkMaxSetDriver.h"
 
 static constexpr uint8_t kNumFirmwareRetries = 10;
 static constexpr int kDefaultCANTimeoutMs = 20;
@@ -66,8 +66,8 @@ static constexpr int kControlTypeFrames[kNumControlTypes] = {
 class CANSparkMaxLowLevel::Daemon : public wpi::SafeThread {
 private:
     void Main() override {
-        REV_CANSparkMaxHeartbeatInit();
-        REV_CANSparkMaxRunHeartbeat();
+        //REV_CANSparkMaxHeartbeatInit();
+        //REV_CANSparkMaxRunHeartbeat();
 
         REV_CANSparkMaxSetDriverInit();
         REV_CANSparkMaxRunSetDriver();
