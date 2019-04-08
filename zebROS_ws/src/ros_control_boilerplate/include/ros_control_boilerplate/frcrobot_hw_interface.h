@@ -53,6 +53,7 @@
 #include <sensor_msgs/Joy.h>
 
 #include <ctre/phoenix/motorcontrol/can/TalonSRX.h>
+#include <rev/CANSparkMax.h>
 #include <frc/IterativeRobotBase.h>
 #include <frc/AnalogInput.h>
 #include <frc/DriverStation.h>
@@ -210,33 +211,35 @@ class FRCRobotHWInterface : public ros_control_boilerplate::FRCRobotInterface
 
 		/* Get conversion factor for position, velocity, and closed-loop stuff */
 
-		double getConversionFactor(int encoder_ticks_per_rotation, hardware_interface::FeedbackDevice encoder_feedback, hardware_interface::TalonMode talon_mode);
+		double getConversionFactor(int encoder_ticks_per_rotation, hardware_interface::FeedbackDevice encoder_feedback, hardware_interface::TalonMode talon_mode) const;
 
 		bool convertControlMode(const hardware_interface::TalonMode input_mode,
-								ctre::phoenix::motorcontrol::ControlMode &output_mode);
+				ctre::phoenix::motorcontrol::ControlMode &output_mode) const;
 		bool convertDemand1Type( const hardware_interface::DemandType input,
-				ctre::phoenix::motorcontrol::DemandType &output);
+				ctre::phoenix::motorcontrol::DemandType &output) const;
 		bool convertNeutralMode(const hardware_interface::NeutralMode input_mode,
-								ctre::phoenix::motorcontrol::NeutralMode &output_mode);
+				ctre::phoenix::motorcontrol::NeutralMode &output_mode) const;
 		bool convertFeedbackDevice(
-			const hardware_interface::FeedbackDevice input_fd,
-			ctre::phoenix::motorcontrol::FeedbackDevice &output_fd);
+				const hardware_interface::FeedbackDevice input_fd,
+				ctre::phoenix::motorcontrol::FeedbackDevice &output_fd) const;
 		bool convertLimitSwitchSource(
-			const hardware_interface::LimitSwitchSource input_ls,
-			ctre::phoenix::motorcontrol::LimitSwitchSource &output_ls);
+				const hardware_interface::LimitSwitchSource input_ls,
+				ctre::phoenix::motorcontrol::LimitSwitchSource &output_ls) const;
 		bool convertRemoteLimitSwitchSource(
-			const hardware_interface::RemoteLimitSwitchSource input_ls,
-			ctre::phoenix::motorcontrol::RemoteLimitSwitchSource &output_ls);
+				const hardware_interface::RemoteLimitSwitchSource input_ls,
+				ctre::phoenix::motorcontrol::RemoteLimitSwitchSource &output_ls) const;
 		bool convertLimitSwitchNormal(
-			const hardware_interface::LimitSwitchNormal input_ls,
-			ctre::phoenix::motorcontrol::LimitSwitchNormal &output_ls);
+				const hardware_interface::LimitSwitchNormal input_ls,
+				ctre::phoenix::motorcontrol::LimitSwitchNormal &output_ls) const;
 		bool convertVelocityMeasurementPeriod(
-			const hardware_interface::VelocityMeasurementPeriod input_v_m_p,
-			ctre::phoenix::motorcontrol::VelocityMeasPeriod &output_v_m_period);
+				const hardware_interface::VelocityMeasurementPeriod input_v_m_p,
+				ctre::phoenix::motorcontrol::VelocityMeasPeriod &output_v_m_period) const;
 		bool convertStatusFrame(const hardware_interface::StatusFrame input,
-			ctre::phoenix::motorcontrol::StatusFrameEnhanced &output);
+				ctre::phoenix::motorcontrol::StatusFrameEnhanced &output) const;
 		bool convertControlFrame(const hardware_interface::ControlFrame input,
-			ctre::phoenix::motorcontrol::ControlFrame &output);
+				ctre::phoenix::motorcontrol::ControlFrame &output) const;
+		bool convertRevMotorType(const hardware_interface::MotorType input,
+				rev::CANSparkMaxLowLevel::MotorType &output) const;
 
 		bool safeTalonCall(ctre::phoenix::ErrorCode error_code,
 				const std::string &talon_method_name);
@@ -250,6 +253,14 @@ class FRCRobotHWInterface : public ros_control_boilerplate::FRCRobotInterface
 		std::vector<std::shared_ptr<hardware_interface::TalonHWState>> talon_read_thread_states_;
 		std::vector<std::thread> talon_read_threads_;
 		void talon_read_thread(std::shared_ptr<ctre::phoenix::motorcontrol::can::TalonSRX> talon, std::shared_ptr<hardware_interface::TalonHWState> state, std::shared_ptr<std::mutex> mutex, Tracer tracer);
+
+		std::vector<std::shared_ptr<rev::CANSparkMax>> can_spark_maxs_;
+
+		// Maintain a separate read thread for each spark_max SRX
+		std::vector<std::shared_ptr<std::mutex>> spark_max_read_state_mutexes_;
+		std::vector<std::shared_ptr<hardware_interface::SparkMaxHWState>> spark_max_read_thread_states_;
+		std::vector<std::thread> spark_max_read_threads_;
+		void spark_max_read_thread(std::shared_ptr<rev::CANSparkMax> spark_max, std::shared_ptr<hardware_interface::SparkMaxHWState> state, std::shared_ptr<std::mutex> mutex, Tracer tracer);
 
 		std::vector<std::shared_ptr<frc::NidecBrushless>> nidec_brushlesses_;
 		std::vector<std::shared_ptr<frc::DigitalInput>> digital_inputs_;

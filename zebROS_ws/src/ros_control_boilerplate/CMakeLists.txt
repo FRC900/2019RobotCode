@@ -198,6 +198,9 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2019-linux-gnueabi")
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.a
 	)
 
+    set(SPARK_MAX ../../../spark_max)
+	include_directories(${SPARK_MAX}/include)
+
 	set (FRCROBOT_HW_MAIN_SRCS ${FRCROBOT_HW_MAIN_SRCS} 
 		src/dummy_wpilib_common.cpp
 		src/dummy_wpilib_hw.cpp
@@ -218,13 +221,19 @@ if (NOT "${ARM_PREFIX}" STREQUAL "arm-frc2019-linux-gnueabi")
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/SmallVector.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
+		${SPARK_MAX}/src/CANDigitalInput.cpp
+		${SPARK_MAX}/src/CANEncoder.cpp
+		${SPARK_MAX}/src/CANPIDController.cpp
+		${SPARK_MAX}/src/CANSparkMax.cpp
+		${SPARK_MAX}/src/CANSparkMaxLowLevel.cpp
+		${SPARK_MAX}/src/SparkMax.cpp
 	)
-file(GLOB
+
+	if (0)
+	file(GLOB
 	ntcore_native_src ${ALLWPILIB}/ntcore/src/main/native/cpp/*.cpp
 	ntcore_native_src ${ALLWPILIB}/ntcore/src/main/native/cpp/networktables/*.cpp
 	ntcore_native_src ${ALLWPILIB}/ntcore/src/main/native/cpp/tables/*.cpp)
-
-	if (0)
 	add_executable(frcrobot_phoenixsim_main
 		src/frcrobot_phoenixsim_interface.cpp
 		src/frcrobot_hw_main.cpp
@@ -316,7 +325,13 @@ file(GLOB
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/StringRef.cpp
 		${ALLWPILIB}/wpiutil/src/main/native/cpp/llvm/Twine.cpp
 		${ntcore_native_src}
-		)
+		${SPARK_MAX}/src/CANDigitalInput.cpp
+		${SPARK_MAX}/src/CANEncoder.cpp
+		${SPARK_MAX}/src/CANPIDController.cpp
+		${SPARK_MAX}/src/CANSparkMax.cpp
+		${SPARK_MAX}/src/CANSparkMaxLowLevel.cpp
+		${SPARK_MAX}/src/SparkMax.cpp
+	)
 
 	target_link_libraries(frcrobot_phoenixsim_main
 		${catkin_LIBRARIES}
@@ -324,7 +339,7 @@ file(GLOB
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCCI.a
 		${CTRE_LIB_DIR}/libCTRE_PhoenixCanutils.a
 		${CTRE_LIB_DIR}/libCTRE_PhoenixPlatform_sim.a
-		)
+	)
 	## Add cmake target dependencies of the executable
 	## same as for the library above. This is needed to force
 	## talon controller messages to be built before the

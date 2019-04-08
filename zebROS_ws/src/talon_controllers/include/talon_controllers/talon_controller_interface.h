@@ -780,7 +780,7 @@ class TalonCIParams
 			return true;
 		}
 		bool stringToLimitSwitchNormal(const std::string &str,
-									   hardware_interface::LimitSwitchNormal &limit_switch_source) const
+									   hardware_interface::LimitSwitchNormal &limit_switch_normal) const
 		{
 			if (str == "NormallyOpen")
 				limit_switch_normal = hardware_interface::LimitSwitchNormal_NormallyOpen;

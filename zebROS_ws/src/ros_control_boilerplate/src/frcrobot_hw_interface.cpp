@@ -260,6 +260,21 @@ void FRCRobotHWInterface::init(void)
 		}
 	}
 
+	for (size_t i = 0; i < num_spark_maxs_; i++)
+	{
+		ROS_INFO_STREAM_NAMED("frcrobot_hw_interface",
+							  "Loading joint " << i << "=" << spark_max_names_[i] <<
+							  (spark_max_local_updates_[i] ? " local" : " remote") << " update, " <<
+							  (spark_max_local_hardwares_[i] ? "local" : "remote") << " hardware" <<
+							  " as CAN id " << spark_max_can_ids_[i]);
+		if (spark_max_local_hardwares_[i])
+		{
+			rev::CANSparkMaxLowLevel::MotorType rev_motor_type;
+			convertRevMotorType(spark_max_motor_types_[i], rev_motor_type);
+			can_spark_maxs_.push_back(std::make_shared<rev::CANSparkMax>(spark_max_can_ids_[i], rev_motor_type));
+		}
+	}
+
 	for (size_t i = 0; i < num_nidec_brushlesses_; i++)
 	{
 		ROS_INFO_STREAM_NAMED("frcrobot_hw_interface",
@@ -1312,7 +1327,7 @@ void FRCRobotHWInterface::read(ros::Duration &/*elapsed_time*/)
 
 double FRCRobotHWInterface::getConversionFactor(int encoder_ticks_per_rotation,
 						hardware_interface::FeedbackDevice encoder_feedback,
-						hardware_interface::TalonMode talon_mode)
+						hardware_interface::TalonMode talon_mode) const
 {
 	if((talon_mode == hardware_interface::TalonMode_Position) ||
 	   (talon_mode == hardware_interface::TalonMode_MotionMagic)) // TODO - maybe motion profile as well?
@@ -2382,7 +2397,7 @@ void FRCRobotHWInterface::write(ros::Duration &elapsed_time)
 // an unknown mode is hit.
 bool FRCRobotHWInterface::convertControlMode(
 	const hardware_interface::TalonMode input_mode,
-	ctre::phoenix::motorcontrol::ControlMode &output_mode)
+	ctre::phoenix::motorcontrol::ControlMode &output_mode) const
 {
 	switch (input_mode)
 	{
@@ -2423,7 +2438,7 @@ bool FRCRobotHWInterface::convertControlMode(
 
 bool FRCRobotHWInterface::convertDemand1Type(
 	const hardware_interface::DemandType input,
-	ctre::phoenix::motorcontrol::DemandType &output)
+	ctre::phoenix::motorcontrol::DemandType &output) const
 {
 	switch(input)
 	{
@@ -2446,7 +2461,7 @@ bool FRCRobotHWInterface::convertDemand1Type(
 
 bool FRCRobotHWInterface::convertNeutralMode(
 	const hardware_interface::NeutralMode input_mode,
-	ctre::phoenix::motorcontrol::NeutralMode &output_mode)
+	ctre::phoenix::motorcontrol::NeutralMode &output_mode) const
 {
 	switch (input_mode)
 	{
@@ -2470,7 +2485,7 @@ bool FRCRobotHWInterface::convertNeutralMode(
 
 bool FRCRobotHWInterface::convertFeedbackDevice(
 	const hardware_interface::FeedbackDevice input_fd,
-	ctre::phoenix::motorcontrol::FeedbackDevice &output_fd)
+	ctre::phoenix::motorcontrol::FeedbackDevice &output_fd) const
 {
 	switch (input_fd)
 	{
@@ -2510,7 +2525,7 @@ bool FRCRobotHWInterface::convertFeedbackDevice(
 
 bool FRCRobotHWInterface::convertLimitSwitchSource(
 	const hardware_interface::LimitSwitchSource input_ls,
-	ctre::phoenix::motorcontrol::LimitSwitchSource &output_ls)
+	ctre::phoenix::motorcontrol::LimitSwitchSource &output_ls) const
 {
 	switch (input_ls)
 	{
@@ -2535,7 +2550,7 @@ bool FRCRobotHWInterface::convertLimitSwitchSource(
 
 bool FRCRobotHWInterface::convertRemoteLimitSwitchSource(
 	const hardware_interface::RemoteLimitSwitchSource input_ls,
-	ctre::phoenix::motorcontrol::RemoteLimitSwitchSource &output_ls)
+	ctre::phoenix::motorcontrol::RemoteLimitSwitchSource &output_ls) const
 {
 	switch (input_ls)
 	{
@@ -2557,7 +2572,7 @@ bool FRCRobotHWInterface::convertRemoteLimitSwitchSource(
 
 bool FRCRobotHWInterface::convertLimitSwitchNormal(
 	const hardware_interface::LimitSwitchNormal input_ls,
-	ctre::phoenix::motorcontrol::LimitSwitchNormal &output_ls)
+	ctre::phoenix::motorcontrol::LimitSwitchNormal &output_ls) const
 {
 	switch (input_ls)
 	{
@@ -2578,7 +2593,7 @@ bool FRCRobotHWInterface::convertLimitSwitchNormal(
 
 }
 
-bool FRCRobotHWInterface::convertVelocityMeasurementPeriod(const hardware_interface::VelocityMeasurementPeriod input_v_m_p, ctre::phoenix::motorcontrol::VelocityMeasPeriod &output_v_m_period)
+bool FRCRobotHWInterface::convertVelocityMeasurementPeriod(const hardware_interface::VelocityMeasurementPeriod input_v_m_p, ctre::phoenix::motorcontrol::VelocityMeasPeriod &output_v_m_period) const
 {
 	switch(input_v_m_p)
 	{
@@ -2613,7 +2628,7 @@ bool FRCRobotHWInterface::convertVelocityMeasurementPeriod(const hardware_interf
 	return true;
 }
 
-bool FRCRobotHWInterface::convertStatusFrame(const hardware_interface::StatusFrame input, ctre::phoenix::motorcontrol::StatusFrameEnhanced &output)
+bool FRCRobotHWInterface::convertStatusFrame(const hardware_interface::StatusFrame input, ctre::phoenix::motorcontrol::StatusFrameEnhanced &output) const
 {
 	switch (input)
 	{
@@ -2666,7 +2681,7 @@ bool FRCRobotHWInterface::convertStatusFrame(const hardware_interface::StatusFra
 	return true;
 }
 
-bool FRCRobotHWInterface::convertControlFrame(const hardware_interface::ControlFrame input, ctre::phoenix::motorcontrol::ControlFrame &output)
+bool FRCRobotHWInterface::convertControlFrame(const hardware_interface::ControlFrame input, ctre::phoenix::motorcontrol::ControlFrame &output) const
 {
 	switch (input)
 	{
@@ -2689,7 +2704,23 @@ bool FRCRobotHWInterface::convertControlFrame(const hardware_interface::ControlF
 			return false;
 	}
 	return true;
+}
 
+bool FRCRobotHWInterface::convertRevMotorType(const hardware_interface::MotorType input, rev::CANSparkMaxLowLevel::MotorType &output) const
+{
+	switch (input)
+	{
+		case hardware_interface::kBrushed:
+			output = rev::CANSparkMaxLowLevel::MotorType::kBrushed;
+			break;
+		case hardware_interface::kBrushless:
+			output = rev::CANSparkMaxLowLevel::MotorType::kBrushless;
+			break;
+		default:
+			ROS_ERROR("Invalid input in convertRevMotorType");
+			return false;
+	}
+	return true;
 }
 
 } // namespace

@@ -162,29 +162,29 @@ class FRCRobotInterface : public hardware_interface::RobotHW
 		ros::NodeHandle nh_;
 
 		// Hardware interfaces
-		hardware_interface::JointStateInterface       joint_state_interface_;
-		hardware_interface::TalonStateInterface       talon_state_interface_;
-		hardware_interface::RemoteTalonStateInterface talon_remote_state_interface_;
-		hardware_interface::SparkMaxStateInterface    spark_max_state_interface_;
-		hardware_interface::RemoteSparkMaxStateInterface spark_max_remote_state_interface_;
-		hardware_interface::PDPStateInterface	      pdp_state_interface_;
-		hardware_interface::RemotePDPStateInterface	  pdp_remote_state_interface_;
-		hardware_interface::PCMStateInterface	      pcm_state_interface_;
-		hardware_interface::RemotePCMStateInterface	  pcm_remote_state_interface_;
+		hardware_interface::JointStateInterface           joint_state_interface_;
+		hardware_interface::TalonStateInterface           talon_state_interface_;
+		hardware_interface::RemoteTalonStateInterface     talon_remote_state_interface_;
+		hardware_interface::SparkMaxStateInterface        spark_max_state_interface_;
+		hardware_interface::RemoteSparkMaxStateInterface  spark_max_remote_state_interface_;
+		hardware_interface::PDPStateInterface	          pdp_state_interface_;
+		hardware_interface::RemotePDPStateInterface	      pdp_remote_state_interface_;
+		hardware_interface::PCMStateInterface	          pcm_state_interface_;
+		hardware_interface::RemotePCMStateInterface	      pcm_remote_state_interface_;
 
-		hardware_interface::MatchStateInterface       match_state_interface_;
-		hardware_interface::RemoteMatchStateInterface match_remote_state_interface_;
+		hardware_interface::MatchStateInterface           match_state_interface_;
+		hardware_interface::RemoteMatchStateInterface     match_remote_state_interface_;
 
-		hardware_interface::JointCommandInterface  joint_command_interface_;
-		hardware_interface::PositionJointInterface joint_position_interface_;
-		hardware_interface::VelocityJointInterface joint_velocity_interface_;
-		hardware_interface::EffortJointInterface   joint_effort_interface_;
-		hardware_interface::RemoteJointInterface   joint_remote_interface_;
-		hardware_interface::TalonCommandInterface  talon_command_interface_;
-		hardware_interface::SparkMaxCommandInterface  spark_max_command_interface_;
+		hardware_interface::JointCommandInterface         joint_command_interface_;
+		hardware_interface::PositionJointInterface        joint_position_interface_;
+		hardware_interface::VelocityJointInterface        joint_velocity_interface_;
+		hardware_interface::EffortJointInterface          joint_effort_interface_;
+		hardware_interface::RemoteJointInterface          joint_remote_interface_;
+		hardware_interface::TalonCommandInterface         talon_command_interface_;
+		hardware_interface::SparkMaxCommandInterface      spark_max_command_interface_;
 
-		hardware_interface::ImuSensorInterface imu_interface_;
-		hardware_interface::RemoteImuSensorInterface imu_remote_interface_;
+		hardware_interface::ImuSensorInterface            imu_interface_;
+		hardware_interface::RemoteImuSensorInterface      imu_remote_interface_;
 
 		hardware_interface::RobotControllerStateInterface robot_controller_state_interface_;
 

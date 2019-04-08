@@ -374,7 +374,7 @@ class SparkMaxHWCommand
 			return false;
 		}
 
-		void setPIDFReferenceSlot(int slot)
+		void setPIDFReferenceSlot(size_t slot)
 		{
 			if ((slot < 0) || (slot >= SPARK_MAX_PID_SLOTS))
 			{
@@ -392,7 +392,7 @@ class SparkMaxHWCommand
 			return pidf_reference_slot_;
 		}
 
-		bool changedPIDFReferenceSlot(int &pidf_reference_slot)
+		bool changedPIDFReferenceSlot(size_t &pidf_reference_slot)
 		{
 			pidf_reference_slot = pidf_reference_slot_;
 			if (pidf_reference_slot_changed_)
@@ -714,7 +714,7 @@ class SparkMaxHWCommand
 
 		ControlType         pidf_reference_ctrl_;
 		bool                pidf_reference_ctrl_changed_;
-		int                 pidf_reference_slot_;
+		size_t              pidf_reference_slot_;
 		bool                pidf_reference_slot_changed_;
 		double              pidf_arb_feed_forward_[SPARK_MAX_PID_SLOTS];
 		bool                pidf_config_changed_[SPARK_MAX_PID_SLOTS];
@@ -734,7 +734,7 @@ class SparkMaxHWCommand
 		unsigned int        current_limit_rpm_;
 		bool                current_limit_changed_;
 		double              secondary_current_limit_;
-		int                 secondary_current_limit_cycles_;
+		unsigned int        secondary_current_limit_cycles_;
 		bool                secondary_current_limit_changed_;
 
 		IdleMode            idle_mode_;

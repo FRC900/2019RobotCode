@@ -296,7 +296,7 @@ class SparkMaxHWState
 	{
 		return pidf_reference_ctrl_;
 	}
-	void setPIDFReferenceSlot(int slot)
+	void setPIDFReferenceSlot(size_t slot)
 	{
 		if ((slot < 0) || (slot >= SPARK_MAX_PID_SLOTS))
 		{
