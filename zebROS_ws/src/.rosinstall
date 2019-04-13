@@ -43,4 +43,6 @@
 - git:
     local-name: realsense
     uri: https://github.com/FRC900/realsense.git 
-
+- git:
+    local-name: adi_driver
+    uri: https://github.com/tork-a/adi_driver.git
