@@ -10,15 +10,16 @@
   <arg name="publish_tf" default="true"/>
   <arg name="publish_debug_topics" default="false"/>
 
-  <param if="$(arg with_rviz)" name="robot_description" command="$(find xacro)/xacro --inorder '$(find adi_driver)/urdf/adis16470_breakout.urdf'" />
+  <param if="$(arg with_rviz)" name="imu_description" command="$(find xacro)/xacro --inorder '$(find adi_driver)/urdf/adis16470_breakout.urdf'" />
+  <param if="$(arg with_rviz)" name="robot_description" command="$(find xacro)/xacro --inorder '$(find ros_control_boilerplate)/urdf/robot.urdf'" />
 
-  <node name="imu" pkg="adi_driver" type="adis16470_node">
+  <!--node name="imu" pkg="adi_driver" type="adis16470_node">
     <param name="device" value="$(arg device)"/>
     <param name="frame_id" value="$(arg frame_id)"/>
     <param name="burst_mode" value="$(arg burst_read)"/>
     <param name="publish_temperature" value="$(arg publish_temperature)"/>
     <param name="rate" value="$(arg rate)"/>
-  </node>
+  </node-->
 
   <node if="$(arg with_filter)"
 	name="imu_filter" pkg="imu_filter_madgwick" type="imu_filter_node">
