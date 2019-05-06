@@ -286,7 +286,6 @@ void evaluateCommands(const ros::MessageEvent<frc_msgs::JoystickState const>& ev
 				goal.has_cargo = false;
 				align_ac->sendGoal(goal);
 			}
-			
 			ROS_INFO_STREAM("Joystick1: bumperLeftPress");
 			ROS_INFO_STREAM("Joystick1: Place Panel");
 			behaviors::PlaceGoal goal;
