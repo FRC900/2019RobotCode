@@ -120,7 +120,6 @@ class TalonSwerveDriveController
 	private:
 		int num_profile_slots_;
 
-		void compOdometry(const ros::Time &time, const double inv_delta_t);
 		Eigen::MatrixX2d new_wheel_pos_;
 		std::array<double, WHEELCOUNT> last_wheel_rot_;	//
 
@@ -153,6 +152,9 @@ class TalonSwerveDriveController
 				0.0, 0.0
 			}), ang(0.0), stamp(0.0) {}
 		};
+
+		void compOdometry(const ros::Time &time, const double inv_delta_t, const Commands command);
+
 		struct cmd_points
 		{
 			std::vector<std::vector<double>> drive_pos;
