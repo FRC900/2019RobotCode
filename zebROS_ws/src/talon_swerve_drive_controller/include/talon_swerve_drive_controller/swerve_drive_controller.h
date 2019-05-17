@@ -63,6 +63,7 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <tf/tfMessage.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <talon_state_controller/TalonState.h>
 
 #include <realtime_tools/realtime_buffer.h>
@@ -345,6 +346,7 @@ class TalonSwerveDriveController
 		ros::Publisher profile_queue_num;
 
 		realtime_tools::RealtimePublisher<nav_msgs::Odometry> odom_pub_;
+		tf2_ros::TransformBroadcaster odom_tf_;
 		realtime_tools::RealtimePublisher<tf::tfMessage> odom_tf_pub_;
 		ros::Time last_odom_pub_time_, last_odom_tf_pub_time_;
 };
