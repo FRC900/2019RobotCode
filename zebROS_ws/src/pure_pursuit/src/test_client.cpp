@@ -139,38 +139,35 @@ tk::spline parametrize_spline(const std::vector<spline_coefs> &x_splines_first_d
 			//Simpsons rule
 			total_arc_length += period_t / 6. * (hypot(x_at_a, y_at_a) + 4. * hypot(x_at_avg, y_at_avg) + hypot(x_at_b, y_at_b));
 
-			if(total_arc_length - last_waypoint_position > iteration_length)
-			{
-				last_waypoint_position = total_arc_length;
-				geometry_msgs::PoseStamped pose;
-				double current_time = a_val; //meaningless
+			last_waypoint_position = total_arc_length;
+			geometry_msgs::PoseStamped pose;
+			double current_time = a_val; //meaningless
 
-				double x_position;
-				double y_position;
-				double yaw;
-				calc_point(x_splines[i], current_time, x_position);
-				calc_point(y_splines[i], current_time, y_position);
-				calc_point(orient_splines[i], current_time, yaw);
+			double x_position;
+			double y_position;
+			double yaw;
+			calc_point(x_splines[i], current_time, x_position);
+			calc_point(y_splines[i], current_time, y_position);
+			calc_point(orient_splines[i], current_time, yaw);
 
-				geometry_msgs::Quaternion orientation;
-				tf2::Quaternion tf_orientation;
-				tf_orientation.setRPY(0, 0, yaw);
-				orientation.x = tf_orientation.getX();
-				orientation.y = tf_orientation.getY();
-				orientation.z = tf_orientation.getZ();
-				orientation.w = tf_orientation.getW();
+			geometry_msgs::Quaternion orientation;
+			tf2::Quaternion tf_orientation;
+			tf_orientation.setRPY(0, 0, yaw);
+			orientation.x = tf_orientation.getX();
+			orientation.y = tf_orientation.getY();
+			orientation.z = tf_orientation.getZ();
+			orientation.w = tf_orientation.getW();
 
-				pose.header.seq = seq;
-				pose.header.stamp = ros::Time(current_time);
-				pose.header.frame_id = "initial_pose";
-				pose.pose.position.x = x_position;
-				pose.pose.position.y = y_position;
-				pose.pose.orientation = orientation;
+			pose.header.seq = seq;
+			pose.header.stamp = ros::Time(current_time);
+			pose.header.frame_id = "initial_pose";
+			pose.pose.position.x = x_position;
+			pose.pose.position.y = y_position;
+			pose.pose.orientation = orientation;
 
-				path.poses.push_back(pose);
+			path.poses.push_back(pose);
 
-				seq++;
-			}
+			seq++;
 		}
 		arc_length_by_spline.push_back(total_arc_length);
 	}
@@ -190,6 +187,33 @@ tk::spline parametrize_spline(const std::vector<spline_coefs> &x_splines_first_d
 	//Put in the last values
 	t_vals.push_back(b_val);
 	s_vals.push_back(total_arc_length);
+
+	geometry_msgs::PoseStamped pose;
+	double current_time = b_val; //meaningless
+
+	double x_position;
+	double y_position;
+	double yaw;
+	calc_point(x_splines[x_splines_first_deriv.size() - 1], b_val, x_position);
+	calc_point(y_splines[x_splines_first_deriv.size() - 1], b_val, y_position);
+	calc_point(orient_splines[x_splines_first_deriv.size() - 1], b_val, yaw);
+
+	geometry_msgs::Quaternion orientation;
+	tf2::Quaternion tf_orientation;
+	tf_orientation.setRPY(0, 0, yaw);
+	orientation.x = tf_orientation.getX();
+	orientation.y = tf_orientation.getY();
+	orientation.z = tf_orientation.getZ();
+	orientation.w = tf_orientation.getW();
+
+	pose.header.seq = seq;
+	pose.header.stamp = ros::Time(current_time);
+	pose.header.frame_id = "initial_pose";
+	pose.pose.position.x = x_position;
+	pose.pose.position.y = y_position;
+	pose.pose.orientation = orientation;
+
+	path.poses.push_back(pose);
 
 	//Spline fit of t in terms of s (we input a t -> s)
 	tk::spline s;

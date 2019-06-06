@@ -98,6 +98,7 @@ private:
   double lookahead_distance_;
   double max_velocity_, max_accel_;
   double pos_tol_, final_pos_tol_;
-  size_t num_waypoints_;
+  int num_waypoints_;
+  size_t last_idx_;
 };
 

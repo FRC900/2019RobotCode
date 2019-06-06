@@ -13,7 +13,7 @@ void PurePursuit::setup()
 	nh_.getParam("/frcrobot_jetson/swerve_drive_controller/max_accel", max_accel_);
 	nh_.getParam("/frcrobot_jetson/pure_pursuit/pos_tol", pos_tol_);
 	nh_.getParam("/frcrobot_jetson/pure_pursuit/final_pos_tol", final_pos_tol_);
-
+	nh_.getParam("/frcrobot_jetson/pure_pursuit/deceleration", deceleration_);
 }
 
 // TODO : for large function parameters, making them const T & is more efficient
@@ -21,6 +21,7 @@ void PurePursuit::loadPath(nav_msgs::Path path)
 {
 	path_ = path;
 	num_waypoints_ = path_.poses.size();
+	last_idx_ = 0;
 }
 
 // The idea would be to have other code be responsible for getting current
@@ -35,10 +36,10 @@ geometry_msgs::Twist PurePursuit::run(nav_msgs::Odometry odom)
 
 	geometry_msgs::PoseStamped next_waypoint;
 
-	// Find point in path closest to odometry reading
+	// Find posize_t in path closest to odometry reading
 	double minimum_distance = std::numeric_limits<double>::max();
 	size_t minimum_idx = 0;
-	for(int i = 0; i < num_waypoints_; i++)
+	for(size_t i = last_idx_; i < num_waypoints_; i++)
 	{
 		ROS_INFO_STREAM("waypoint " << i << " = " << path_.poses[i].pose.position.x << ", " << path_.poses[i].pose.position.y);
 		ROS_INFO_STREAM("distance from waypoint " << i << " = " << hypot(path_.poses[i].pose.position.x - odom.pose.pose.position.x, path_.poses[i].pose.position.y - odom.pose.pose.position.y));
@@ -49,10 +50,34 @@ geometry_msgs::Twist PurePursuit::run(nav_msgs::Odometry odom)
 		}
 	}
 	ROS_INFO_STREAM("minimum_distance = " << minimum_distance);
+	last_idx_ = minimum_idx;
 
-	next_waypoint = path_.poses[std::min(num_waypoints_ - 1, minimum_idx+1)];
+	double dist_from_endpoint = hypot(path_.poses[num_waypoints_ - 1].pose.position.x - odom.pose.pose.position.x, path_.poses[num_waypoints_ - 1].pose.position.y- odom.pose.pose.position.y);
+	//double last_velocity = hypot(cmd_vel.linear.x, cmd_vel.linear.y);
+	//double distance_to_decelerate = pow(last_velocity, 2)/deceleration_/2;
 
-	if(minimum_idx == num_waypoints_ - 1)
+	if(dist_from_endpoint > lookahead_distance /*distance_to_decelerate*/)
+	{
+		for(size_t i = minimum_idx; i < path_.poses.size(); i++)
+		{
+			if(hypot(path_.poses[i].pose.position.x - odom.pose.pose.position.x, path_.poses[i].pose.position.y- odom.pose.pose.position.y) > lookahead_distance_)
+			{
+				next_waypoint = path_.poses[i - 1];
+				break;
+			}
+		}
+	}
+	else
+	{
+		/*cmd_vel_.linear.x = 0;
+		cmd_vel_.linear.y = 0;
+		cmd_vel_.linear.z = 0;
+		cmd_vel_.angular.x = 0;
+		cmd_vel_.angular.y = 0;
+		cmd_vel_.angular.z = 0;*/
+		next_waypoint = path_.poses[num_waypoints_ - 1];
+	}
+
 
 	ROS_INFO_STREAM("x-error: " << fabs(odom.pose.pose.position.x - next_waypoint.pose.position.x) << " y-error: " << fabs(odom.pose.pose.position.y - next_waypoint.pose.position.y) << " final_pos_tol: " << final_pos_tol_);
 	if(minimum_idx == num_waypoints_ - 1 && fabs(odom.pose.pose.position.x - path_.poses[num_waypoints_ - 1].pose.position.x) < final_pos_tol_ && fabs(odom.pose.pose.position.y - path_.poses[num_waypoints_ - 1].pose.position.y) < final_pos_tol_)
