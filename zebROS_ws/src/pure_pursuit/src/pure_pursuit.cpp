@@ -13,7 +13,6 @@ void PurePursuit::setup()
 	nh_.getParam("/frcrobot_jetson/swerve_drive_controller/max_accel", max_accel_);
 	nh_.getParam("/frcrobot_jetson/pure_pursuit/pos_tol", pos_tol_);
 	nh_.getParam("/frcrobot_jetson/pure_pursuit/final_pos_tol", final_pos_tol_);
-	nh_.getParam("/frcrobot_jetson/pure_pursuit/deceleration", deceleration_);
 }
 
 // TODO : for large function parameters, making them const T & is more efficient
@@ -41,22 +40,17 @@ geometry_msgs::Twist PurePursuit::run(nav_msgs::Odometry odom)
 	size_t minimum_idx = 0;
 	for(size_t i = last_idx_; i < num_waypoints_; i++)
 	{
-		ROS_INFO_STREAM("waypoint " << i << " = " << path_.poses[i].pose.position.x << ", " << path_.poses[i].pose.position.y);
-		ROS_INFO_STREAM("distance from waypoint " << i << " = " << hypot(path_.poses[i].pose.position.x - odom.pose.pose.position.x, path_.poses[i].pose.position.y - odom.pose.pose.position.y));
 		if(hypot(path_.poses[i].pose.position.x - odom.pose.pose.position.x, path_.poses[i].pose.position.y - odom.pose.pose.position.y) < minimum_distance)
 		{
 			minimum_distance = hypot(path_.poses[i].pose.position.x - odom.pose.pose.position.x, path_.poses[i].pose.position.y - odom.pose.pose.position.y);
 			minimum_idx = i;
 		}
 	}
-	ROS_INFO_STREAM("minimum_distance = " << minimum_distance);
 	last_idx_ = minimum_idx;
 
 	double dist_from_endpoint = hypot(path_.poses[num_waypoints_ - 1].pose.position.x - odom.pose.pose.position.x, path_.poses[num_waypoints_ - 1].pose.position.y- odom.pose.pose.position.y);
-	//double last_velocity = hypot(cmd_vel.linear.x, cmd_vel.linear.y);
-	//double distance_to_decelerate = pow(last_velocity, 2)/deceleration_/2;
 
-	if(dist_from_endpoint > lookahead_distance /*distance_to_decelerate*/)
+	if(dist_from_endpoint > lookahead_distance_ /*distance_to_decelerate*/)
 	{
 		for(size_t i = minimum_idx; i < path_.poses.size(); i++)
 		{
@@ -69,12 +63,6 @@ geometry_msgs::Twist PurePursuit::run(nav_msgs::Odometry odom)
 	}
 	else
 	{
-		/*cmd_vel_.linear.x = 0;
-		cmd_vel_.linear.y = 0;
-		cmd_vel_.linear.z = 0;
-		cmd_vel_.angular.x = 0;
-		cmd_vel_.angular.y = 0;
-		cmd_vel_.angular.z = 0;*/
 		next_waypoint = path_.poses[num_waypoints_ - 1];
 	}
 

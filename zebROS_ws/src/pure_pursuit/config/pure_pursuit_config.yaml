@@ -4,4 +4,3 @@ pure_pursuit:
     odometry_topic: "/frcrobot_jetson/swerve_drive_controller/odom"
     target_frame: "initial_pose"
     final_pos_tol: 0.1
-    deceleration: 3
