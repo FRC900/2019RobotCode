@@ -6,6 +6,7 @@
 #include "behaviors/enumerated_elevator_indices.h"
 #include "pure_pursuit/spline.h"
 #include <std_srvs/Trigger.h>
+#include <pure_pursuit/Point32Array.h>
 #include "base_trajectory/GenerateSpline.h"
 #include <swerve_point_generator/FullGenCoefs.h>
 #include "tf2/LinearMath/Quaternion.h"
@@ -227,29 +228,32 @@ tk::spline parametrize_spline(const std::vector<spline_coefs> &x_splines_first_d
 	return s;
 }
 
-bool trigger_pathing_cb(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+bool trigger_pathing_cb(pure_pursuit::Point32Array::Request &req, pure_pursuit::Point32Array::Response &res)
 {
 	/*** GET SPLINE COEFFICIENTS**/
 	ROS_ERROR_STREAM("Getting spline coefficients in pure pursuit test client");
 	base_trajectory::GenerateSpline srvBaseTrajectory;
 	srvBaseTrajectory.request.points.resize(2);
+	std::vector<geometry_msgs::Point32> points = req.points;
 
-	//x-movement
-	srvBaseTrajectory.request.points[0].positions.push_back(1);
-	//y-movement
-	srvBaseTrajectory.request.points[0].positions.push_back(2);
-	//z-rotation
-	double rotation = 0;
-	srvBaseTrajectory.request.points[0].positions.push_back(rotation);
-	//time for profile to run
-	srvBaseTrajectory.request.points[0].time_from_start = ros::Duration(10);
+	for(size_t i = 0; i < points.size(); i++)
+	{
+		//x-movement
+		srvBaseTrajectory.request.points[0].positions.push_back(points[i].x);
+		//y-movement
+		srvBaseTrajectory.request.points[0].positions.push_back(points[i].y);
+		//z-rotation
+		srvBaseTrajectory.request.points[0].positions.push_back(points[i].z);
+		//time for profile to run
+		srvBaseTrajectory.request.points[0].time_from_start = ros::Duration(10);
 
-	//x-movement
-	srvBaseTrajectory.request.points[1].positions.push_back(0);
-	//y-movement
-	srvBaseTrajectory.request.points[1].positions.push_back(4);
-	//z-rotation
-	srvBaseTrajectory.request.points[1].positions.push_back(rotation);
+		//x-movement
+		srvBaseTrajectory.request.points[1].positions.push_back(points[i].x);
+		//y-movement
+		srvBaseTrajectory.request.points[1].positions.push_back(points[i].y);
+		//z-rotation
+		srvBaseTrajectory.request.points[1].positions.push_back(points[i].z);
+	}
 	//time for profile to run
 	srvBaseTrajectory.request.points[1].time_from_start = ros::Duration(20);
 

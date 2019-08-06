@@ -35,7 +35,7 @@ geometry_msgs::Twist PurePursuit::run(nav_msgs::Odometry odom)
 
 	geometry_msgs::PoseStamped next_waypoint;
 
-	// Find posize_t in path closest to odometry reading
+	// Find position in path closest to odometry reading
 	double minimum_distance = std::numeric_limits<double>::max();
 	size_t minimum_idx = 0;
 	for(size_t i = last_idx_; i < num_waypoints_; i++)
@@ -46,10 +46,12 @@ geometry_msgs::Twist PurePursuit::run(nav_msgs::Odometry odom)
 			minimum_idx = i;
 		}
 	}
+	// Keep the index of the closest point so the algorithm only searches points it hasn't travelled
 	last_idx_ = minimum_idx;
 
+	// If the robot is close enough to the endpoint, drive to the endpoint
+	// Else, drive to the point that is closest to the lookahead distance
 	double dist_from_endpoint = hypot(path_.poses[num_waypoints_ - 1].pose.position.x - odom.pose.pose.position.x, path_.poses[num_waypoints_ - 1].pose.position.y- odom.pose.pose.position.y);
-
 	if(dist_from_endpoint > lookahead_distance_ /*distance_to_decelerate*/)
 	{
 		for(size_t i = minimum_idx; i < path_.poses.size(); i++)
@@ -68,6 +70,7 @@ geometry_msgs::Twist PurePursuit::run(nav_msgs::Odometry odom)
 
 
 	ROS_INFO_STREAM("x-error: " << fabs(odom.pose.pose.position.x - next_waypoint.pose.position.x) << " y-error: " << fabs(odom.pose.pose.position.y - next_waypoint.pose.position.y) << " final_pos_tol: " << final_pos_tol_);
+	// If we have reached the endpoint, send cmd_vel zero 
 	if(minimum_idx == num_waypoints_ - 1 && fabs(odom.pose.pose.position.x - path_.poses[num_waypoints_ - 1].pose.position.x) < final_pos_tol_ && fabs(odom.pose.pose.position.y - path_.poses[num_waypoints_ - 1].pose.position.y) < final_pos_tol_)
 	{
 		cmd_vel_.linear.x = 0;

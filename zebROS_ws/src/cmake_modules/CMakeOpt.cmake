@@ -22,7 +22,7 @@ else() # Native builds
     unset(CUDA_USE_STATIC_CUDA_RUNTIME CACHE)
     option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
   else() # x86? Mac?
-	set (OPT_FLAGS "-Ofast -flto=4 -fno-finite-math-only -march=native -mtune=native")
+	set (OPT_FLAGS "-Ofast -flto=1 -fno-finite-math-only -march=native -mtune=native")
   endif()
 endif()
 

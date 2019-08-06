@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pure_pursuit)
 
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
@@ -63,11 +65,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  Point32Array.srv
+)
 
 ## Generate actions in the 'action' folder
 add_action_files(
@@ -199,3 +200,4 @@ target_link_libraries(pure_pursuit_test_client
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+endif()

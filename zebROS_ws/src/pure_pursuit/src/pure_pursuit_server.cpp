@@ -106,7 +106,6 @@ class PurePursuitAction
 			nav_msgs::Odometry transformed_odom;
 			while(ros::ok() && !timed_out && !preempted && !success)
 			{
-				//TODO: things are not working with initial_pose
 				try
 				{
 					tf2::doTransform(odom_msg_, transformed_odom, transform);
