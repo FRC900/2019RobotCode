@@ -90,8 +90,8 @@ class PurePursuitAction
 			//publish the current location, relative to the starting location of the robot, as a dynamic transform
 			tf2_ros::TransformBroadcaster br;
 			geometry_msgs::TransformStamped transform;
-			transform.header.frame_id = "initial_pose";
-			transform.child_frame_id = "odom";
+			transform.header.frame_id = "camera_odom_frame";
+			transform.child_frame_id = "camera_pose_frame";
 			transform.transform.translation.x = -odom_msg_.pose.pose.position.x;
 			transform.transform.translation.y = -odom_msg_.pose.pose.position.y;
 			transform.transform.translation.z = 0.0;
